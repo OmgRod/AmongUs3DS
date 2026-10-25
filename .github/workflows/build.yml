@@ -22,7 +22,7 @@ jobs:
           chmod +x tools/makerom tools/bannertool || true
 
       - name: Compile Game
-        run: make
+        run: make MAKEROM=makerom BANNERTOOL=bannertool
 
       - name: Upload 3DS Artifacts
         uses: actions/upload-artifact@v4

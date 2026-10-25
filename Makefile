@@ -19,7 +19,7 @@ ROMFS       := romfs
 
 # CIA, SMDH Metadata, and Tools Setup
 APP_TITLE   := Among Us 3DS
-APP_DESCRIPTION := An online and local party game of teamwork and betrayal for 4-15 players...in space!
+APP_DESCRIPTION := A party game of teamwork and betrayal for 4-15 players...in space!
 APP_AUTHOR  := OmgRod
 ICON        := icon.png
 BANNER_IMAGE := banner.png
