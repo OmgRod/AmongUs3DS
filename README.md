@@ -1,4 +1,4 @@
-# Among Us: 3DS Edition (C++ devkitPro Port)
+# Among Us: 3DS Edition
 
 This is an unofficial port of **Among Us** for the **Nintendo 3DS**, built natively in C++ using **devkitPro** (`libctru`, `citro3d`, and `citro2d`).
 
