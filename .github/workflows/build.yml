@@ -1,0 +1,34 @@
+name: Build 3DS Release
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm:latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare Linux Tools
+        run: |
+          # Ensures the custom tools are executable in the Linux container environment
+          chmod +x tools/makerom tools/bannertool || true
+
+      - name: Compile Game
+        run: make
+
+      - name: Upload 3DS Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: AmongUs3DS-Release
+          path: |
+            AmongUs3DS.3dsx
+            AmongUs3DS.cia
+          if-no-files-found: error
