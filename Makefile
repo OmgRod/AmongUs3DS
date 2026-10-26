@@ -12,14 +12,14 @@ include $(DEVKITARM)/3ds_rules
 #---------------------------------------------------------------------------------
 TARGET      := AmongUs3DS
 BUILD       := build
-SOURCES     := source
+SOURCES     := source source/engine
 DATA        := data
 INCLUDES    := include
 ROMFS       := romfs
 
 # CIA, SMDH Metadata, and Tools Setup
 APP_TITLE   := Among Us 3DS
-APP_DESCRIPTION := A party game of teamwork and betrayal for 4-15 players...in space!
+APP_DESCRIPTION := A party game of teamwork and betrayal for 4-10 players...in space!
 APP_AUTHOR  := OmgRod
 ICON        := icon.png
 BANNER_IMAGE := banner.png
@@ -104,20 +104,24 @@ endif
 all: $(BUILD) $(TARGET).cia
 
 $(BUILD):
-	@[ -d $@ ] || mkdir -p $@
-	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+		@[ -d $@ ] || mkdir -p $@
+		@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
-$(TARGET).cia: $(BUILD) banner.bnr
-	@echo "Packaging CIA..."
-	@$(MAKEROM) -f cia -o $@ -elf $(TARGET).elf -rsf $(RSF) -icon $(TARGET).smdh -banner banner.bnr -exefslogo -target t
+$(TARGET).cia: $(BUILD) $(TARGET).smdh banner.bnr
+		@echo "Packaging CIA..."
+		@$(MAKEROM) -f cia -o $@ -elf $(TARGET).elf -rsf $(RSF) -icon $(TARGET).smdh -banner banner.bnr -exefslogo -target t
+
+$(TARGET).smdh: $(APP_ICON)
+		@echo "Generating SMDH..."
+		@$(BANNERTOOL) makesmdh -s "$(APP_TITLE)" -l "$(APP_DESCRIPTION)" -p "$(APP_AUTHOR)" -i "$(APP_ICON)" -o $@
 
 banner.bnr: $(BANNER_IMAGE) $(BANNER_AUDIO)
-	@echo "Generating Banner..."
-	@$(BANNERTOOL) makebanner -i $(BANNER_IMAGE) -a $(BANNER_AUDIO) -o $@
+		@echo "Generating Banner..."
+		@$(BANNERTOOL) makebanner -i $(BANNER_IMAGE) -a $(BANNER_AUDIO) -o $@
 
 clean:
-	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).3dsx $(OUTPUT).smdh $(TARGET).elf $(TARGET).cia banner.bnr
+		@echo clean ...
+		@rm -fr $(BUILD) $(TARGET).3dsx $(TARGET).smdh $(OUTPUT).smdh $(TARGET).elf $(TARGET).cia banner.bnr
 
 else
 DEPENDS :=  $(OFILES:.o=.d)

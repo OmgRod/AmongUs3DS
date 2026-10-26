@@ -1,4 +1,11 @@
 game-source/
 build/
 
-./AmongUs3DS.*
+# using this because i got no wifi lol
+3ds-examples/
+
+AmongUs3DS.3dsx
+AmongUs3DS.cia
+AmongUs3DS.elf
+AmongUs3DS.smdh
+banner.bnr

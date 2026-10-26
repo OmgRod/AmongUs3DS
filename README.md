@@ -1,6 +1,8 @@
 # Among Us: 3DS Edition
 
-This is an unofficial port of **Among Us** for the **Nintendo 3DS**, built natively in C++ using **devkitPro** (`libctru`, `citro3d`, and `citro2d`).
+<p style="text-alignment: center;">![AMOGUS](banner.png)</p>
+
+This is an unofficial port of **Among Us** `v2020.9.22s` for the **Nintendo 3DS**, built natively in C++ using **devkitPro**.
 
 ## Prerequisites
 
@@ -10,7 +12,7 @@ This is an unofficial port of **Among Us** for the **Nintendo 3DS**, built nativ
 
 ## Building the Game
 
-Open your devkitPro terminal, navigate to the project directory, and run:
+Open your terminal, navigate to the project directory, and run:
 
 ```bash
 make
