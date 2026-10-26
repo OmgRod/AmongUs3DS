@@ -21,9 +21,17 @@ namespace {
         uint32_t subchunk2Size;   // Audio data size in bytes
     };
 
+    bool hasWavExtension(const std::string& path) {
+        if (path.length() >= 4) {
+            std::string ext = path.substr(path.length() - 4);
+            return (ext == ".wav" || ext == ".WAV");
+        }
+        return false;
+    }
+
     engine::SoundFormat getSoundFormatByExtension(std::string path) {
         engine::SoundFormat sf = engine::SoundFormat::Unknown;
-        if (path.ends_with(".wav")) {
+        if (hasWavExtension(path)) {
             sf = engine::SoundFormat::Wav;
         }
         return sf;
@@ -121,6 +129,7 @@ void AudioEngine::playSFX(std::string path, bool loop) {
     } else {
         ndspFormat = (header.bitsPerSample == 8) ? NDSP_FORMAT_MONO_PCM8 : NDSP_FORMAT_MONO_PCM16;
     }
+    
     ndspChnSetFormat(channel, ndspFormat);
 
     Sound sound;
@@ -133,7 +142,6 @@ void AudioEngine::playSFX(std::string path, bool loop) {
     sound.waveBuf.data_vaddr = audioBuffer;
     sound.waveBuf.nsamples = dataSize / (header.numChannels * (header.bitsPerSample / 8));
     sound.waveBuf.looping = loop;
-    sound.waveBuf.fmt_type = ndspFormat;
 
     ndspChnWaveBufAdd(channel, &sound.waveBuf);
 

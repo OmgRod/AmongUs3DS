@@ -3,7 +3,7 @@ BasicInfo:
   CompanyCode             : "00"
   ProductCode             : "CTR-P-A3DS"
   ContentType             : Application
-  Logo                    : Homebrew
+  Logo                    : Nintendo
 
 TitleInfo:
   UniqueId                : 0xA3D5
