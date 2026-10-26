@@ -11,6 +11,10 @@
 #include <string>
 #include <cstring>
 #include <cstdlib>
+#include <memory>
+#include <map>
+#include <algorithm>
+#include <math.h>
 
 // engine headers
 #include <engine/audio.hpp>

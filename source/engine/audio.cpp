@@ -1,8 +1,5 @@
 #include <engine/audio.hpp>
 #include <engine/filesystem.hpp>
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
 
 namespace {
     struct WAVHeader {
