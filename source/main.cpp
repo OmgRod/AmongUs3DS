@@ -28,6 +28,8 @@ int main(int argc, char **argv) {
         C3D_FrameEnd(0);
     }
 
+    engine::AudioEngine::getInstance().shutdown();
+
     C2D_TextBufDelete(c2dTextBuf);
     C2D_Fini();
     C3D_Fini();

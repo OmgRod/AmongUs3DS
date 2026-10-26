@@ -9,16 +9,6 @@ namespace {
         char chunkId[4];          // "RIFF"
         uint32_t chunkSize;       // File size - 8
         char format[4];           // "WAVE"
-        char subchunk1Id[4];      // "fmt "
-        uint32_t subchunk1Size;   // 16 for PCM
-        uint16_t audioFormat;     // 1 (PCM)
-        uint16_t numChannels;     // 1 = Mono, 2 = Stereo
-        uint32_t sampleRate;      // e.g., 22050, 44100, 48000
-        uint32_t byteRate;        // SampleRate * NumChannels * BitsPerSample / 8
-        uint16_t blockAlign;      // NumChannels * BitsPerSample / 8
-        uint16_t bitsPerSample;   // 8 or 16
-        char subchunk2Id[4];      // "data"
-        uint32_t subchunk2Size;   // Audio data size in bytes
     };
 
     bool hasWavExtension(const std::string& path) {
@@ -41,6 +31,10 @@ namespace {
 namespace engine {
 
 AudioEngine::~AudioEngine() {
+    shutdown();
+}
+
+void AudioEngine::shutdown() {
     for (auto& sound : m_playingSounds) {
         if (sound.channel >= 0) {
             ndspChnReset(sound.channel);
@@ -90,10 +84,34 @@ void AudioEngine::playSFX(std::string path, bool loop) {
         return;
     }
 
-    size_t dataOffset = sizeof(WAVHeader);
-    u32 dataSize = header.subchunk2Size;
-    if (dataOffset + dataSize > fileData.size()) {
-        dataSize = fileData.size() - dataOffset;
+    uint32_t sampleRate = 22050;
+    uint16_t numChannels = 2;
+    uint16_t bitsPerSample = 16;
+    size_t dataOffset = 0;
+    uint32_t dataSize = 0;
+
+    size_t cursor = 12;
+    while (cursor < fileData.size() - 8) {
+        char chunkId[4];
+        uint32_t chunkSize;
+        std::memcpy(chunkId, &fileData[cursor], 4);
+        std::memcpy(&chunkSize, &fileData[cursor + 4], 4);
+
+        if (std::strncmp(chunkId, "fmt ", 4) == 0) {
+            std::memcpy(&numChannels, &fileData[cursor + 10], 2);
+            std::memcpy(&sampleRate, &fileData[cursor + 12], 4);
+            std::memcpy(&bitsPerSample, &fileData[cursor + 22], 2);
+        } else if (std::strncmp(chunkId, "data", 4) == 0) {
+            dataOffset = cursor + 8;
+            dataSize = chunkSize;
+            break;
+        }
+        cursor += 8 + chunkSize;
+    }
+
+    if (dataOffset == 0 || dataOffset + dataSize > fileData.size()) {
+        std::printf("AudioEngine: Could not find valid 'data' chunk in WAV: %s\n", path.c_str());
+        return;
     }
 
     u8* audioBuffer = (u8*)linearAlloc(dataSize);
@@ -121,13 +139,13 @@ void AudioEngine::playSFX(std::string path, bool loop) {
 
     ndspChnReset(channel);
     ndspChnSetInterp(channel, NDSP_INTERP_LINEAR);
-    ndspChnSetRate(channel, (float)header.sampleRate);
+    ndspChnSetRate(channel, (float)sampleRate);
 
     u16 ndspFormat = NDSP_FORMAT_MONO_PCM16;
-    if (header.numChannels == 2) {
-        ndspFormat = (header.bitsPerSample == 8) ? NDSP_FORMAT_STEREO_PCM8 : NDSP_FORMAT_STEREO_PCM16;
+    if (numChannels == 2) {
+        ndspFormat = (bitsPerSample == 8) ? NDSP_FORMAT_STEREO_PCM8 : NDSP_FORMAT_STEREO_PCM16;
     } else {
-        ndspFormat = (header.bitsPerSample == 8) ? NDSP_FORMAT_MONO_PCM8 : NDSP_FORMAT_MONO_PCM16;
+        ndspFormat = (bitsPerSample == 8) ? NDSP_FORMAT_MONO_PCM8 : NDSP_FORMAT_MONO_PCM16;
     }
     
     ndspChnSetFormat(channel, ndspFormat);
@@ -140,7 +158,7 @@ void AudioEngine::playSFX(std::string path, bool loop) {
 
     std::memset(&sound.waveBuf, 0, sizeof(ndspWaveBuf));
     sound.waveBuf.data_vaddr = audioBuffer;
-    sound.waveBuf.nsamples = dataSize / (header.numChannels * (header.bitsPerSample / 8));
+    sound.waveBuf.nsamples = dataSize / (numChannels * (bitsPerSample / 8));
     sound.waveBuf.looping = loop;
 
     ndspChnWaveBufAdd(channel, &sound.waveBuf);

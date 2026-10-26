@@ -18,7 +18,7 @@ INCLUDES    := include
 ROMFS       := romfs
 
 # CIA, SMDH Metadata, and Tools Setup
-APP_TITLE   := Among Us 3DS
+APP_TITLE   := Among Us
 APP_DESCRIPTION := A party game of teamwork and betrayal for 4-10 players...in space!
 APP_AUTHOR  := OmgRod
 ICON        := icon.png
@@ -28,6 +28,7 @@ RSF         := app.rsf
 TOOLS_DIR   := tools
 MAKEROM     := $(TOOLS_DIR)/makerom
 BANNERTOOL  := $(TOOLS_DIR)/bannertool
+3DSTOOL     := $(TOOLS_DIR)/3dstool
 
 #---------------------------------------------------------------------------------
 ARCH    :=  -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft
@@ -107,9 +108,13 @@ $(BUILD):
 		@[ -d $@ ] || mkdir -p $@
 		@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
-$(TARGET).cia: $(BUILD) $(TARGET).smdh banner.bnr
+romfs.bin: $(ROMFS)
+		@echo "Compiling RomFS folder into binary..."
+		@$(3DSTOOL) -cvtf romfs $@ --romfs-dir $(ROMFS)
+
+$(TARGET).cia: $(BUILD) $(TARGET).smdh banner.bnr romfs.bin
 		@echo "Packaging CIA..."
-		@$(MAKEROM) -f cia -o $@ -elf $(TARGET).elf -rsf $(RSF) -icon $(TARGET).smdh -banner banner.bnr -exefslogo -target t
+		@$(MAKEROM) -f cia -o $@ -elf $(TARGET).elf -rsf $(RSF) -icon $(TARGET).smdh -banner banner.bnr -romfs romfs.bin -exefslogo -target t
 
 $(TARGET).smdh: $(APP_ICON)
 		@echo "Generating SMDH..."
@@ -121,7 +126,7 @@ banner.bnr: $(BANNER_IMAGE) $(BANNER_AUDIO)
 
 clean:
 		@echo clean ...
-		@rm -fr $(BUILD) $(TARGET).3dsx $(TARGET).smdh $(OUTPUT).smdh $(TARGET).elf $(TARGET).cia banner.bnr
+		@rm -fr $(BUILD) $(TARGET).3dsx $(TARGET).smdh $(OUTPUT).smdh $(TARGET).elf $(TARGET).cia banner.bnr romfs.bin
 
 else
 DEPENDS :=  $(OFILES:.o=.d)

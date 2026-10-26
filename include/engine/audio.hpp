@@ -29,6 +29,8 @@ namespace engine {
         void playSFX(std::string path, bool loop = false);
         void update();
 
+        void shutdown();
+
     private:
         AudioEngine() {}
         ~AudioEngine();

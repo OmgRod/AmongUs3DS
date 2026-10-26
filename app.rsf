@@ -1,9 +1,9 @@
 BasicInfo:
-  Title                   : "Among Us 3DS"
+  Title                   : "Among Us"
   CompanyCode             : "00"
   ProductCode             : "CTR-P-A3DS"
   ContentType             : Application
-  Logo                    : Nintendo
+  Logo                    : Homebrew
 
 TitleInfo:
   UniqueId                : 0xA3D5
