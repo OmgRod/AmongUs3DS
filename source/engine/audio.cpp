@@ -1,5 +1,8 @@
 #include <engine/audio.hpp>
 #include <engine/filesystem.hpp>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
 
 namespace {
     struct WAVHeader {
@@ -17,11 +20,8 @@ namespace {
     }
 
     engine::SoundFormat getSoundFormatByExtension(std::string path) {
-        engine::SoundFormat sf = engine::SoundFormat::Unknown;
-        if (hasWavExtension(path)) {
-            sf = engine::SoundFormat::Wav;
-        }
-        return sf;
+        if (hasWavExtension(path)) return engine::SoundFormat::Wav;
+        return engine::SoundFormat::Unknown;
     }
 }
 
@@ -31,24 +31,45 @@ AudioEngine::~AudioEngine() {
     shutdown();
 }
 
+bool AudioEngine::init() {
+    Result res = ndspInit();
+    if (R_FAILED(res)) {
+        std::printf("AudioEngine: ndspInit failed with error 0x%08lX. Audio subsystem disabled.\n", (unsigned long)res);
+        m_initialized = false;
+        return false;
+    }
+
+    ndspSetOutputMode(NDSP_OUTPUT_STEREO);
+    m_initialized = true;
+    std::printf("AudioEngine: Initialized NDSP successfully.\n");
+    return true;
+}
+
 void AudioEngine::shutdown() {
-    for (auto& sound : m_playingSounds) {
-        if (sound.channel >= 0) {
-            ndspChnReset(sound.channel);
+    if (!m_initialized) return;
+
+    for (auto& soundPtr : m_playingSounds) {
+        if (soundPtr->channel >= 0) {
+            ndspChnReset(soundPtr->channel);
         }
-        if (sound.audioBuffer) {
-            linearFree(sound.audioBuffer);
+        if (soundPtr->audioBuffer) {
+            linearFree(soundPtr->audioBuffer);
         }
     }
     m_playingSounds.clear();
+    ndspExit();
+    m_initialized = false;
 }
 
 void AudioEngine::update() {
+    if (!m_initialized) return;
+
     for (auto it = m_playingSounds.begin(); it != m_playingSounds.end(); ) {
-        if (it->channel >= 0 && !it->waveBuf.looping && it->waveBuf.status == NDSP_WBUF_DONE) {
-            ndspChnReset(it->channel);
-            if (it->audioBuffer) {
-                linearFree(it->audioBuffer);
+        auto& sound = *it;
+        if (sound->channel >= 0 && !sound->waveBuf.looping && sound->waveBuf.status == NDSP_WBUF_DONE) {
+            ndspChnReset(sound->channel);
+            if (sound->audioBuffer) {
+                linearFree(sound->audioBuffer);
             }
             it = m_playingSounds.erase(it);
         } else {
@@ -58,6 +79,11 @@ void AudioEngine::update() {
 }
 
 void AudioEngine::playSFX(std::string path, bool loop) {
+    if (!m_initialized) {
+        std::printf("AudioEngine: Skipping SFX '%s' (audio subsystem not initialized).\n", path.c_str());
+        return;
+    }
+
     update();
 
     SoundFormat format = getSoundFormatByExtension(path);
@@ -88,13 +114,13 @@ void AudioEngine::playSFX(std::string path, bool loop) {
     uint32_t dataSize = 0;
 
     size_t cursor = 12;
-    while (cursor < fileData.size() - 8) {
+    while (cursor + 8 <= fileData.size()) {
         char chunkId[4];
         uint32_t chunkSize;
         std::memcpy(chunkId, &fileData[cursor], 4);
         std::memcpy(&chunkSize, &fileData[cursor + 4], 4);
 
-        if (std::strncmp(chunkId, "fmt ", 4) == 0) {
+        if (std::strncmp(chunkId, "fmt ", 4) == 0 && cursor + 24 <= fileData.size()) {
             std::memcpy(&numChannels, &fileData[cursor + 10], 2);
             std::memcpy(&sampleRate, &fileData[cursor + 12], 4);
             std::memcpy(&bitsPerSample, &fileData[cursor + 22], 2);
@@ -103,7 +129,10 @@ void AudioEngine::playSFX(std::string path, bool loop) {
             dataSize = chunkSize;
             break;
         }
-        cursor += 8 + chunkSize;
+
+        size_t pad = (chunkSize % 2 != 0) ? 1 : 0;
+        if (cursor + 8 + chunkSize + pad < cursor) break;
+        cursor += 8 + chunkSize + pad;
     }
 
     if (dataOffset == 0 || dataOffset + dataSize > fileData.size()) {
@@ -147,20 +176,25 @@ void AudioEngine::playSFX(std::string path, bool loop) {
     
     ndspChnSetFormat(channel, ndspFormat);
 
-    Sound sound;
-    sound.path = path;
-    sound.format = format;
-    sound.audioBuffer = audioBuffer;
-    sound.channel = channel;
+    float mix[12] = {0};
+    mix[0] = 1.0f;
+    mix[1] = 1.0f;
+    ndspChnSetMix(channel, mix);
 
-    std::memset(&sound.waveBuf, 0, sizeof(ndspWaveBuf));
-    sound.waveBuf.data_vaddr = audioBuffer;
-    sound.waveBuf.nsamples = dataSize / (numChannels * (bitsPerSample / 8));
-    sound.waveBuf.looping = loop;
+    auto sound = std::make_unique<Sound>();
+    sound->path = path;
+    sound->format = format;
+    sound->audioBuffer = audioBuffer;
+    sound->channel = channel;
 
-    ndspChnWaveBufAdd(channel, &sound.waveBuf);
+    std::memset(&sound->waveBuf, 0, sizeof(ndspWaveBuf));
+    sound->waveBuf.data_vaddr = audioBuffer;
+    sound->waveBuf.nsamples = dataSize / (numChannels * (bitsPerSample / 8));
+    sound->waveBuf.looping = loop;
 
-    this->m_playingSounds.push_back(sound);
+    ndspChnWaveBufAdd(channel, &sound->waveBuf);
+    m_playingSounds.push_back(std::move(sound));
+
     std::printf("Playing SFX (Looping: %s): %s\n", loop ? "true" : "false", path.c_str());
 }
 

@@ -12,14 +12,14 @@ include $(DEVKITARM)/3ds_rules
 #---------------------------------------------------------------------------------
 TARGET      := AmongUs3DS
 BUILD       := build
-SOURCES     := source source/engine
+SOURCES     := source source/engine source/game
 DATA        := data
 INCLUDES    := include
 ROMFS       := romfs
 
 # CIA, SMDH Metadata, and Tools Setup
 APP_TITLE   := Among Us
-APP_DESCRIPTION := A party game of teamwork and betrayal for 4-10 players...in space!
+APP_DESCRIPTION := Among Us: 3DS Edition
 APP_AUTHOR  := OmgRod
 ICON        := icon.png
 BANNER_IMAGE := banner.png

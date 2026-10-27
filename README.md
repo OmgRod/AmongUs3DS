@@ -2,7 +2,7 @@
 
 <p style="text-alignment: center;">![AMOGUS](banner.png)</p>
 
-This is an unofficial port of **Among Us** `v2020.9.22s` for the **Nintendo 3DS**, built natively in C++ using **devkitPro**.
+This is an unofficial port of **Among Us** `v2020.9.22s` *(with a few adjustments)* for the **Nintendo 3DS**, built natively in C++ using **devkitPro**.
 
 ## Prerequisites
 
@@ -18,4 +18,4 @@ Open your terminal, navigate to the project directory, and run:
 make
 ```
 
-This compiles the C++ source files, links against `citro2d`, `citro3d`, and `libctru`, and outputs `AmongUs3DS.3dsx` and `AmongUs3DS.cia`.
+This compiles the C++ source files and outputs `AmongUs3DS.3dsx` and `AmongUs3DS.cia`.

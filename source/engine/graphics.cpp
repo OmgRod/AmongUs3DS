@@ -1,6 +1,12 @@
 #include <engine/graphics.hpp>
+#include <engine/actions.hpp>
+#include <engine/input.hpp>
+#include <math.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 namespace engine {
+
     std::shared_ptr<Node> Node::create() {
         return std::make_shared<Node>();
     }
@@ -33,7 +39,43 @@ namespace engine {
             });
     }
 
+    void Node::runAction(std::shared_ptr<Action> action) {
+        if (!action) return;
+        action->startWithTarget(this);
+        m_actions.push_back(action);
+    }
+
+    void Node::stopAction(std::shared_ptr<Action> action) {
+        auto it = std::find(m_actions.begin(), m_actions.end(), action);
+        if (it != m_actions.end()) {
+            (*it)->stop();
+            m_actions.erase(it);
+        }
+    }
+
+    void Node::stopAllActions() {
+        for (auto& action : m_actions) {
+            if (action) action->stop();
+        }
+        m_actions.clear();
+    }
+
     void Node::update(float dt) {
+        for (auto it = m_actions.begin(); it != m_actions.end(); ) {
+            auto& action = *it;
+            if (action && !action->isDone()) {
+                action->step(dt);
+                if (action->isDone()) {
+                    it = m_actions.erase(it);
+                    continue;
+                }
+            } else {
+                it = m_actions.erase(it);
+                continue;
+            }
+            ++it;
+        }
+
         for (auto& child : m_children) {
             if (child->m_visible) {
                 child->update(dt);
@@ -72,17 +114,86 @@ namespace engine {
         m_image.subtex = nullptr;
     }
 
-    std::shared_ptr<Sprite> Sprite::create(C2D_SpriteSheet sheet, size_t imageIndex) {
+    Sprite::~Sprite() {
+        if (m_ownsTexture && m_image.tex) {
+            C3D_TexDelete(m_image.tex);
+            delete m_image.tex;
+            if (m_image.subtex) {
+                delete m_image.subtex;
+            }
+        }
+    }
+
+    std::shared_ptr<Sprite> Sprite::create(const std::string& path) {
         auto sprite = std::make_shared<Sprite>();
-        if (sprite->initWithImage(sheet, imageIndex)) {
+        if (sprite->initWithFile(path)) {
             return sprite;
         }
         return nullptr;
     }
 
-    bool Sprite::initWithImage(C2D_SpriteSheet sheet, size_t imageIndex) {
-        if (!sheet) return false;
-        m_image = C2D_SpriteSheetGetImage(sheet, imageIndex);
+    bool Sprite::initWithFile(const std::string& path) {
+        std::vector<uint8_t> fileData = Filesystem::getInstance().readFileBinaryRomfs(path.c_str());
+        if (fileData.empty()) {
+            std::printf("Sprite Error: Failed to read file from romfs: %s\n", path.c_str());
+            return false;
+        }
+
+        int width, height, channels;
+        stbi_set_flip_vertically_on_load(false);
+        unsigned char* imgData = stbi_load_from_memory(
+            fileData.data(), (int)fileData.size(), &width, &height, &channels, 4
+        );
+
+        if (!imgData) {
+            std::printf("Sprite Error: stbi_load_from_memory failed for %s\n", path.c_str());
+            return false;
+        }
+
+        C3D_Tex* tex = new C3D_Tex();
+        
+        if (!C3D_TexInit(tex, width, height, GPU_RGBA8)) {
+            std::printf("Sprite Error: C3D_TexInit failed for %s\n", path.c_str());
+            stbi_image_free(imgData);
+            delete tex;
+            return false;
+        }
+
+        u32* dest = (u32*)tex->data;
+        u32* src = (u32*)imgData;
+        
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                u32 pixel = src[y * width + x];
+                u8 r = pixel & 0xFF;
+                u8 g = (pixel >> 8) & 0xFF;
+                u8 b = (pixel >> 16) & 0xFF;
+                u8 a = (pixel >> 24) & 0xFF;
+
+                int destPos = ((y >> 3) * (width >> 3) + (x >> 3)) * 64 +
+                             ((x & 1) | ((y & 1) << 1) | ((x & 2) << 1) | ((y & 2) << 2) |
+                              ((x & 4) << 2) | ((y & 4) << 3));
+                
+                if (destPos < (width * height)) {
+                    dest[destPos] = (a << 24) | (r << 16) | (g << 8) | b;
+                }
+            }
+        }
+
+        stbi_image_free(imgData);
+
+        C3D_TexSetFilter(tex, GPU_LINEAR, GPU_LINEAR);
+
+        Tex3DS_SubTexture* subtex = new Tex3DS_SubTexture{
+            (u16)width, 
+            (u16)height, 
+            0.0f, 1.0f, 1.0f, 0.0f
+        };
+
+        m_image.tex = tex;
+        m_image.subtex = subtex;
+        m_ownsTexture = true;
+
         return m_image.tex != nullptr;
     }
 
@@ -109,6 +220,186 @@ namespace engine {
         params.depth = m_zOrder;
 
         C2D_DrawImage(m_image, &params, m_hasTint ? &m_tint : nullptr);
+    }
+
+    std::shared_ptr<DrawNode> DrawNode::createRect(float w, float h, u32 color) {
+        auto node = std::make_shared<DrawNode>();
+        node->m_shape = Rectangle;
+        node->m_w = w;
+        node->m_h = h;
+        node->m_color = color;
+        return node;
+    }
+
+    std::shared_ptr<DrawNode> DrawNode::createTriangle(float x1, float y1, float x2, float y2, float x3, float y3, u32 color) {
+        auto node = std::make_shared<DrawNode>();
+        node->m_shape = Triangle;
+        node->m_x1 = x1; node->m_y1 = y1;
+        node->m_x2 = x2; node->m_y2 = y2;
+        node->m_x3 = x3; node->m_y3 = y3;
+        node->m_color = color;
+        return node;
+    }
+
+    std::shared_ptr<DrawNode> DrawNode::createQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, u32 color) {
+        auto node = std::make_shared<DrawNode>();
+        node->m_shape = Quad;
+        node->m_x1 = x1; node->m_y1 = y1;
+        node->m_x2 = x2; node->m_y2 = y2;
+        node->m_x3 = x3; node->m_y3 = y3;
+        node->m_x4 = x4; node->m_y4 = y4;
+        node->m_color = color;
+        return node;
+    }
+
+    void DrawNode::draw(float parentX, float parentY, float parentScaleX, float parentScaleY, float parentRotation) {
+        if (m_shape == Rectangle) {
+            C2D_DrawRectSolid(parentX, parentY, m_zOrder, m_w * parentScaleX, m_h * parentScaleY, m_color);
+        } else if (m_shape == Triangle) {
+            C2D_DrawTriangle(parentX + m_x1, parentY + m_y1, m_color,
+                             parentX + m_x2, parentY + m_y2, m_color,
+                             parentX + m_x3, parentY + m_y3, m_color, m_zOrder);
+        } else if (m_shape == Quad) {
+            C2D_DrawTriangle(parentX + m_x1, parentY + m_y1, m_color,
+                             parentX + m_x2, parentY + m_y2, m_color,
+                             parentX + m_x3, parentY + m_y3, m_color, m_zOrder);
+            C2D_DrawTriangle(parentX + m_x1, parentY + m_y1, m_color,
+                             parentX + m_x3, parentY + m_y3, m_color,
+                             parentX + m_x4, parentY + m_y4, m_color, m_zOrder);
+        }
+    }
+
+    Label::Label() {
+        m_textBuf = C2D_TextBufNew(1024);
+    }
+
+    Label::~Label() {
+        if (m_textBuf) {
+            C2D_TextBufDelete(m_textBuf);
+        }
+        if (m_ownsFont && m_fontLoaded) {
+            C2D_FontFree(m_font);
+        }
+    }
+
+    std::shared_ptr<Label> Label::create(const std::string& fontPath, const std::string& text, float scale, u32 color) {
+        auto label = std::make_shared<Label>();
+        
+        label->m_font = C2D_FontLoad(fontPath.c_str());
+        if (label->m_font) {
+            label->m_fontLoaded = true;
+            label->m_ownsFont = true;
+        } else {
+            label->m_font = C2D_FontLoadSystem(CFG_REGION_USA);
+            label->m_fontLoaded = true;
+            label->m_ownsFont = true;
+        }
+
+        label->m_color = color;
+        label->m_textScaleX = scale;
+        label->m_textScaleY = scale;
+        label->setString(text);
+
+        return label;
+    }
+
+    void Label::setString(const std::string& text) {
+        m_string = text;
+        parseText();
+    }
+
+    void Label::parseText() {
+        if (!m_fontLoaded) return;
+        C2D_TextBufClear(m_textBuf);
+
+        C2D_TextParse(&m_text, m_textBuf, m_string.c_str());
+        C2D_TextOptimize(&m_text);
+    }
+
+    void Label::draw(float parentX, float parentY, float parentScaleX, float parentScaleY, float parentRotation) {
+        if (!m_fontLoaded || m_string.empty()) return;
+
+        float renderX = parentX;
+        if (m_alignment == HAlign::Center || m_alignment == HAlign::Right) {
+            float width = 0.0f, height = 0.0f;
+            C2D_TextGetDimensions(&m_text, m_textScaleX * parentScaleX, m_textScaleY * parentScaleY, &width, &height);
+            if (m_alignment == HAlign::Center) renderX -= width / 2.0f;
+            else if (m_alignment == HAlign::Right) renderX -= width;
+        }
+
+        u32 flags = C2D_WithColor;
+        if (m_wrapWidth > 0.0f) {
+            flags |= C2D_WordWrap;
+            C2D_DrawText(&m_text, flags, renderX, parentY, m_zOrder, 
+                         m_textScaleX * parentScaleX, m_textScaleY * parentScaleY, m_color, m_wrapWidth / parentScaleX);
+        } else {
+            C2D_DrawText(&m_text, flags, renderX, parentY, m_zOrder, 
+                         m_textScaleX * parentScaleX, m_textScaleY * parentScaleY, m_color);
+        }
+    }
+
+    void Layout::updateLayout() {
+        float currentOffset = m_padding;
+        for (auto& child : m_children) {
+            if (!child->isVisible()) continue;
+            if (m_type == Vertical) {
+                child->setPosition(m_padding, currentOffset);
+                currentOffset += child->getHeight() + m_spacing;
+            } else {
+                child->setPosition(currentOffset, m_padding);
+                currentOffset += child->getWidth() + m_spacing;
+            }
+        }
+    }
+
+    void Layout::addChildAndLayout(std::shared_ptr<Node> child) {
+        addChild(child);
+        updateLayout();
+    }
+
+    Button::Button(float w, float h, const std::string& title, u32 normalColor, u32 pressedColor, std::function<void()> onClick)
+        : m_onClick(onClick), m_normalColor(normalColor), m_pressedColor(pressedColor), m_w(w), m_h(h) {
+        
+        m_bgRect = DrawNode::createRect(w, h, normalColor);
+        addChild(m_bgRect);
+
+        m_label = Label::create("romfs:/fonts/font.bcfnt", title, 0.5f, C2D_Color32(255, 255, 255, 255));
+        m_label->setAlignment(Label::HAlign::Center);
+        m_label->setPosition(w / 2.0f, h / 4.0f);
+        addChild(m_label);
+    }
+
+    std::shared_ptr<Button> Button::create(float w, float h, const std::string& title, u32 normalColor, u32 pressedColor, std::function<void()> onClick) {
+        return std::make_shared<Button>(w, h, title, normalColor, pressedColor, onClick);
+    }
+
+    void Button::update(float dt) {
+        Node::update(dt);
+
+        auto& input = engine::Input::getInstance();
+        if (input.isTouched()) {
+            touchPosition touch = input.getTouch();
+            
+            float absX = m_x;
+            float absY = m_y;
+            Node* p = m_parent;
+            while (p) {
+                absX += p->getX();
+                absY += p->getY();
+                p = p->getParent();
+            }
+
+            if (touch.px >= absX && touch.px <= absX + m_w && touch.py >= absY && touch.py <= absY + m_h) {
+                m_isPressed = true;
+                if (m_bgRect) m_bgRect->setColor(m_pressedColor);
+                if (m_onClick) m_onClick();
+            }
+        } else {
+            if (m_isPressed) {
+                m_isPressed = false;
+                if (m_bgRect) m_bgRect->setColor(m_normalColor);
+            }
+        }
     }
 
     std::shared_ptr<Scene> Scene::create() {
@@ -153,6 +444,14 @@ namespace engine {
         m_bottomScene = bottomScene;
     }
 
+    void Director::replaceTopScene(std::shared_ptr<Scene> newScene) {
+        m_topScene = newScene;
+    }
+
+    void Director::replaceBottomScene(std::shared_ptr<Scene> newScene) {
+        m_bottomScene = newScene;
+    }
+
     C2D_SpriteSheet Director::loadSpriteSheet(const std::string& key, const std::string& path) {
         if (m_spriteSheets.find(key) != m_spriteSheets.end()) {
             return m_spriteSheets[key];
@@ -180,10 +479,10 @@ namespace engine {
 
         while (aptMainLoop()) {
             gspWaitForVBlank();
-            hidScanInput();
+            
+            engine::Input::getInstance().poll();
 
-            u32 kDown = hidKeysDown();
-            if (kDown & KEY_START) break; 
+            if (engine::Input::getInstance().isKeyDown(KEY_START)) break; 
 
             if (m_topScene) {
                 m_topScene->update(dt);

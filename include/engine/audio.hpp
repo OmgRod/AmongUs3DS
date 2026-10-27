@@ -3,7 +3,8 @@
 #include <includes.hpp>
 
 namespace engine {
-    enum SoundFormat {
+
+    enum class SoundFormat {
         Unknown,
         Wav
     };
@@ -12,29 +13,32 @@ namespace engine {
         std::string path;
         SoundFormat format;
         u8* audioBuffer = nullptr;
-        ndspWaveBuf waveBuf;
         int channel = -1;
+        ndspWaveBuf waveBuf;
     };
 
     class AudioEngine {
+    private:
+        std::vector<std::unique_ptr<Sound>> m_playingSounds;
+        bool m_initialized = false;
+
+        AudioEngine() = default;
+
     public:
+        ~AudioEngine();
         AudioEngine(const AudioEngine&) = delete;
         AudioEngine& operator=(const AudioEngine&) = delete;
-        
+
         static AudioEngine& getInstance() {
-            static AudioEngine obj;
-            return obj;
+            static AudioEngine instance;
+            return instance;
         }
 
-        void playSFX(std::string path, bool loop = false);
+        bool init();
         void update();
-
+        void playSFX(std::string path, bool loop = false);
         void shutdown();
-
-    private:
-        AudioEngine() {}
-        ~AudioEngine();
-
-        std::vector<Sound> m_playingSounds;
+        bool isInitialized() const { return m_initialized; }
     };
+
 }
