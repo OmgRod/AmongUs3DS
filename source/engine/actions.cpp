@@ -5,7 +5,10 @@
 namespace engine {
 
     MoveTo::MoveTo(float duration, float x, float y, Ease::EaseFunc ease)
-        : FiniteTimeAction(duration), m_endX(x), m_endY(y), m_ease(ease) {}
+        : FiniteTimeAction(duration), m_endX(x), m_endY(y), m_ease(ease) {
+        m_elapsed = 0.0f;
+        m_done = false;
+    }
 
     std::shared_ptr<MoveTo> MoveTo::create(float duration, float x, float y, Ease::EaseFunc ease) {
         return std::make_shared<MoveTo>(duration, x, y, ease);
@@ -13,6 +16,8 @@ namespace engine {
 
     void MoveTo::startWithTarget(Node* target) {
         FiniteTimeAction::startWithTarget(target);
+        m_elapsed = 0.0f;
+        m_done = false;
         if (m_target) {
             m_startX = m_target->getX();
             m_startY = m_target->getY();
@@ -30,7 +35,10 @@ namespace engine {
     }
 
     MoveBy::MoveBy(float duration, float deltaX, float deltaY, Ease::EaseFunc ease)
-        : FiniteTimeAction(duration), m_deltaX(deltaX), m_deltaY(deltaY), m_ease(ease) {}
+        : FiniteTimeAction(duration), m_deltaX(deltaX), m_deltaY(deltaY), m_ease(ease) {
+        m_elapsed = 0.0f;
+        m_done = false;
+    }
 
     std::shared_ptr<MoveBy> MoveBy::create(float duration, float deltaX, float deltaY, Ease::EaseFunc ease) {
         return std::make_shared<MoveBy>(duration, deltaX, deltaY, ease);
@@ -38,6 +46,8 @@ namespace engine {
 
     void MoveBy::startWithTarget(Node* target) {
         FiniteTimeAction::startWithTarget(target);
+        m_elapsed = 0.0f;
+        m_done = false;
         if (m_target) {
             m_startX = m_target->getX();
             m_startY = m_target->getY();
@@ -55,10 +65,16 @@ namespace engine {
     }
 
     ScaleTo::ScaleTo(float duration, float scale, Ease::EaseFunc ease)
-        : FiniteTimeAction(duration), m_endX(scale), m_endY(scale), m_ease(ease) {}
+        : FiniteTimeAction(duration), m_endX(scale), m_endY(scale), m_ease(ease) {
+        m_elapsed = 0.0f;
+        m_done = false;
+    }
 
     ScaleTo::ScaleTo(float duration, float scaleX, float scaleY, Ease::EaseFunc ease)
-        : FiniteTimeAction(duration), m_endX(scaleX), m_endY(scaleY), m_ease(ease) {}
+        : FiniteTimeAction(duration), m_endX(scaleX), m_endY(scaleY), m_ease(ease) {
+        m_elapsed = 0.0f;
+        m_done = false;
+    }
 
     std::shared_ptr<ScaleTo> ScaleTo::create(float duration, float scale, Ease::EaseFunc ease) {
         return std::make_shared<ScaleTo>(duration, scale, ease);
@@ -70,6 +86,8 @@ namespace engine {
 
     void ScaleTo::startWithTarget(Node* target) {
         FiniteTimeAction::startWithTarget(target);
+        m_elapsed = 0.0f;
+        m_done = false;
         if (m_target) {
             m_startX = m_target->getScaleX();
             m_startY = m_target->getScaleY();
@@ -87,7 +105,10 @@ namespace engine {
     }
 
     RotateBy::RotateBy(float duration, float deltaAngle, Ease::EaseFunc ease)
-        : FiniteTimeAction(duration), m_deltaAngle(deltaAngle), m_ease(ease) {}
+        : FiniteTimeAction(duration), m_deltaAngle(deltaAngle), m_ease(ease) {
+        m_elapsed = 0.0f;
+        m_done = false;
+    }
 
     std::shared_ptr<RotateBy> RotateBy::create(float duration, float deltaAngle, Ease::EaseFunc ease) {
         return std::make_shared<RotateBy>(duration, deltaAngle, ease);
@@ -95,6 +116,8 @@ namespace engine {
 
     void RotateBy::startWithTarget(Node* target) {
         FiniteTimeAction::startWithTarget(target);
+        m_elapsed = 0.0f;
+        m_done = false;
         if (m_target) {
             m_startAngle = m_target->getRotation();
         }
@@ -111,7 +134,10 @@ namespace engine {
     }
 
     std::shared_ptr<DelayTime> DelayTime::create(float duration) {
-        return std::make_shared<DelayTime>(duration);
+        auto action = std::make_shared<DelayTime>(duration);
+        action->m_elapsed = 0.0f;
+        action->m_done = false;
+        return action;
     }
 
     void DelayTime::step(float dt) {
@@ -135,7 +161,10 @@ namespace engine {
     }
 
     PlaySound::PlaySound(std::string soundPath, bool loop)
-        : FiniteTimeAction(0.0f), m_soundPath(soundPath), m_loop(loop) {}
+        : FiniteTimeAction(0.0f), m_soundPath(soundPath), m_loop(loop) {
+        m_elapsed = 0.0f;
+        m_done = false;
+    }
 
     std::shared_ptr<PlaySound> PlaySound::create(std::string soundPath, bool loop) {
         return std::make_shared<PlaySound>(soundPath, loop);
@@ -156,11 +185,15 @@ namespace engine {
         float total = 0.0f;
         for (auto& a : m_actions) if (a) total += a->getDuration();
         m_duration = total;
+        m_elapsed = 0.0f;
+        m_done = false;
     }
 
     void Sequence::startWithTarget(Node* target) {
         FiniteTimeAction::startWithTarget(target);
         m_index = 0;
+        m_elapsed = 0.0f;
+        m_done = false;
         if (!m_actions.empty() && m_actions[0]) {
             m_actions[0]->startWithTarget(target);
         } else {
@@ -170,7 +203,8 @@ namespace engine {
 
     void Sequence::step(float dt) {
         if (!m_target || m_done || m_actions.empty()) return;
-
+        m_elapsed += dt;
+        
         while (m_index < m_actions.size()) {
             auto& current = m_actions[m_index];
             if (!current) {
@@ -197,10 +231,14 @@ namespace engine {
         float maxDur = 0.0f;
         for (auto& a : m_actions) if (a && a->getDuration() > maxDur) maxDur = a->getDuration();
         m_duration = maxDur;
+        m_elapsed = 0.0f;
+        m_done = false;
     }
 
     void Spawn::startWithTarget(Node* target) {
         FiniteTimeAction::startWithTarget(target);
+        m_elapsed = 0.0f;
+        m_done = false;
         for (auto& a : m_actions) {
             if (a) a->startWithTarget(target);
         }
@@ -208,6 +246,7 @@ namespace engine {
 
     void Spawn::step(float dt) {
         if (!m_target || m_done) return;
+        m_elapsed += dt;
         bool allDone = true;
         for (auto& a : m_actions) {
             if (a && !a->isDone()) {

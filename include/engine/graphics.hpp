@@ -8,6 +8,7 @@
 #include <functional>
 #include <algorithm>
 #include <engine/Filesystem.hpp>
+#include <engine/math.hpp>
 
 namespace engine {
 
@@ -81,7 +82,7 @@ namespace engine {
         C2D_ImageTint m_tint;
         bool m_hasTint = false;
         bool m_ownsTexture = false;
-        std::vector<uint8_t> m_pixelData; // Added to store raw binary pixels
+        std::vector<uint8_t> m_pixelData;
 
     public:
         Sprite();
@@ -94,8 +95,8 @@ namespace engine {
         void clearTint();
 
         virtual void draw(float parentX, float parentY, float parentScaleX, float parentScaleY, float parentRotation) override;
-        virtual float getWidth() const override { return 400.0f; } // Top screen width or custom
-        virtual float getHeight() const override { return 240.0f; } // Top screen height
+        virtual float getWidth() const override { return 400.0f; }
+        virtual float getHeight() const override { return 240.0f; }
     };
 
     class DrawNode : public Node {
@@ -256,6 +257,9 @@ namespace engine {
 
         C2D_SpriteSheet loadSpriteSheet(const std::string& key, const std::string& path);
         void unloadSpriteSheet(const std::string& key);
+
+        Size getTopScreenSize() const;
+        Size getBottomScreenSize() const;
 
         void mainLoop();
     };

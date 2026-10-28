@@ -63,8 +63,11 @@ namespace engine {
     void Node::update(float dt) {
         for (auto it = m_actions.begin(); it != m_actions.end(); ) {
             auto& action = *it;
-            if (action && !action->isDone()) {
-                action->step(dt);
+            if (action) {
+                if (!action->isDone()) {
+                    action->step(dt);
+                }
+                
                 if (action->isDone()) {
                     it = m_actions.erase(it);
                     continue;
@@ -134,8 +137,28 @@ namespace engine {
 
     bool Sprite::initWithFile(const std::string& path) {
         std::vector<uint8_t> fileData = Filesystem::getInstance().readFileBinaryRomfs(path.c_str());
+        
         if (fileData.empty()) {
-            std::printf("Sprite Error: Failed to read file from romfs: %s\n", path.c_str());
+            std::string altPath = path;
+            if (altPath.rfind("romfs:/", 0) == 0) {
+                altPath = std::string("romfs:") + altPath.substr(6); 
+            }
+            
+            FILE* f = std::fopen(altPath.c_str(), "rb");
+            if (f) {
+                std::fseek(f, 0, SEEK_END);
+                long length = std::ftell(f);
+                std::fseek(f, 0, SEEK_SET);
+                if (length > 0) {
+                    fileData.resize(length);
+                    std::fread(fileData.data(), 1, length, f);
+                }
+                std::fclose(f);
+            }
+        }
+
+        if (fileData.empty()) {
+            std::printf("[Sprite] CRITICAL: File truly not found: %s\n", path.c_str());
             return false;
         }
 
@@ -146,55 +169,75 @@ namespace engine {
         );
 
         if (!imgData) {
-            std::printf("Sprite Error: stbi_load_from_memory failed for %s\n", path.c_str());
+            std::printf("[Sprite] CRITICAL: stbi failed: %s\n", stbi_failure_reason());
             return false;
         }
 
-        C3D_Tex* tex = new C3D_Tex();
+        auto nextPow2 = [](int v) {
+            v--;
+            v |= v >> 1;
+            v |= v >> 2;
+            v |= v >> 4;
+            v |= v >> 8;
+            v |= v >> 16;
+            v++;
+            return v < 8 ? 8 : v;
+        };
+
+        int texWidth = nextPow2(width);
+        int texHeight = nextPow2(height);
+
+        std::vector<uint8_t> finalData(texWidth * texHeight * 4, 0);
+
+        auto getMortonOffset = [](int x, int y, int texW) -> int {
+            int tileX = x / 8;
+            int tileY = y / 8;
+            int tilesPerRow = texW / 8;
+            int tileIndex = (tileY * tilesPerRow) + tileX;
+
+            int localX = x % 8;
+            int localY = y % 8;
+
+            int pixelInTile = (localX & 1)       | ((localY & 1) << 1) |
+                              ((localX & 2) << 1) | ((localY & 2) << 2) |
+                              ((localX & 4) << 2) | ((localY & 4) << 3);
+
+            return ((tileIndex * 64) + pixelInTile) * 4;
+        };
         
-        if (!C3D_TexInit(tex, width, height, GPU_RGBA8)) {
-            std::printf("Sprite Error: C3D_TexInit failed for %s\n", path.c_str());
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                int srcIdx = (y * width + x) * 4;
+                int dstIdx = getMortonOffset(x, y, texWidth);
+                
+                finalData[dstIdx + 0] = imgData[srcIdx + 3];
+                finalData[dstIdx + 1] = imgData[srcIdx + 2];
+                finalData[dstIdx + 2] = imgData[srcIdx + 1];
+                finalData[dstIdx + 3] = imgData[srcIdx + 0];
+            }
+        }
+
+        C3D_Tex* tex = new C3D_Tex();
+        if (!C3D_TexInit(tex, texWidth, texHeight, GPU_RGBA8)) {
             stbi_image_free(imgData);
             delete tex;
             return false;
         }
 
-        u32* dest = (u32*)tex->data;
-        u32* src = (u32*)imgData;
-        
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                u32 pixel = src[y * width + x];
-                u8 r = pixel & 0xFF;
-                u8 g = (pixel >> 8) & 0xFF;
-                u8 b = (pixel >> 16) & 0xFF;
-                u8 a = (pixel >> 24) & 0xFF;
-
-                int destPos = ((y >> 3) * (width >> 3) + (x >> 3)) * 64 +
-                             ((x & 1) | ((y & 1) << 1) | ((x & 2) << 1) | ((y & 2) << 2) |
-                              ((x & 4) << 2) | ((y & 4) << 3));
-                
-                if (destPos < (width * height)) {
-                    dest[destPos] = (a << 24) | (r << 16) | (g << 8) | b;
-                }
-            }
-        }
-
+        C3D_TexUpload(tex, finalData.data());
         stbi_image_free(imgData);
-
+        
         C3D_TexSetFilter(tex, GPU_LINEAR, GPU_LINEAR);
 
-        Tex3DS_SubTexture* subtex = new Tex3DS_SubTexture{
-            (u16)width, 
-            (u16)height, 
-            0.0f, 1.0f, 1.0f, 0.0f
-        };
-
         m_image.tex = tex;
-        m_image.subtex = subtex;
+        
+        float right = (float)width / (float)texWidth;
+        float bottom = 1.0f - ((float)height / (float)texHeight);
+        
+        m_image.subtex = new Tex3DS_SubTexture{(u16)width, (u16)height, 0.0f, 1.0f, right, bottom};
         m_ownsTexture = true;
 
-        return m_image.tex != nullptr;
+        return true;
     }
 
     void Sprite::setTint(u32 color) {
@@ -214,8 +257,8 @@ namespace engine {
         params.pos.y = parentY;
         params.pos.w = m_image.subtex->width * parentScaleX;
         params.pos.h = m_image.subtex->height * parentScaleY;
-        params.center.x = m_anchorX;
-        params.center.y = m_anchorY;
+        params.center.x = m_anchorX * m_image.subtex->width;
+        params.center.y = m_anchorY * m_image.subtex->height;
         params.angle = parentRotation * (M_PI / 180.0f);
         params.depth = m_zOrder;
 
@@ -319,21 +362,28 @@ namespace engine {
     void Label::draw(float parentX, float parentY, float parentScaleX, float parentScaleY, float parentRotation) {
         if (!m_fontLoaded || m_string.empty()) return;
 
-        float renderX = parentX;
-        if (m_alignment == HAlign::Center || m_alignment == HAlign::Right) {
-            float width = 0.0f, height = 0.0f;
-            C2D_TextGetDimensions(&m_text, m_textScaleX * parentScaleX, m_textScaleY * parentScaleY, &width, &height);
-            if (m_alignment == HAlign::Center) renderX -= width / 2.0f;
-            else if (m_alignment == HAlign::Right) renderX -= width;
+        // 1. Get raw dimensions
+        float width = 0.0f, height = 0.0f;
+        C2D_TextGetDimensions(&m_text, m_textScaleX * parentScaleX, m_textScaleY * parentScaleY, &width, &height);
+
+        // 2. Apply explicit Node Anchor offsets
+        float renderX = parentX - (width * m_anchorX);
+        float renderY = parentY - (height * m_anchorY);
+
+        // 3. Keep HAlign compatibility (counters the anchor if both are 0.5)
+        if (m_alignment == HAlign::Center) {
+            renderX += width / 2.0f;
+        } else if (m_alignment == HAlign::Right) {
+            renderX += width;
         }
 
         u32 flags = C2D_WithColor;
         if (m_wrapWidth > 0.0f) {
             flags |= C2D_WordWrap;
-            C2D_DrawText(&m_text, flags, renderX, parentY, m_zOrder, 
+            C2D_DrawText(&m_text, flags, renderX, renderY, m_zOrder, 
                          m_textScaleX * parentScaleX, m_textScaleY * parentScaleY, m_color, m_wrapWidth / parentScaleX);
         } else {
-            C2D_DrawText(&m_text, flags, renderX, parentY, m_zOrder, 
+            C2D_DrawText(&m_text, flags, renderX, renderY, m_zOrder, 
                          m_textScaleX * parentScaleX, m_textScaleY * parentScaleY, m_color);
         }
     }
@@ -469,6 +519,14 @@ namespace engine {
             C2D_SpriteSheetFree(it->second);
             m_spriteSheets.erase(it);
         }
+    }
+
+    Size Director::getTopScreenSize() const {
+        return Size(400.0f, 240.0f);
+    }
+
+    Size Director::getBottomScreenSize() const {
+        return Size(320.0f, 240.0f);
     }
 
     void Director::mainLoop() {

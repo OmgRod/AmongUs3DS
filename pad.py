@@ -1,30 +1,62 @@
 import os
 from PIL import Image
 
+def next_power_of_2(x):
+    """Calculates the next power of 2 for a given integer."""
+    return 1 if x == 0 else 1 << (x - 1).bit_length()
 
-def convert_to_raw(input_dir, output_dir):
-  for root, dirs, files in os.walk(input_dir):
-    for file in files:
-      if file.lower().endswith(".png"):
-        in_path = os.path.join(root, file)
-        with Image.open(in_path) as img:
-          # Convert to RGB/BGR format matching 3DS framebuffers
-          img = img.convert("RGB")
-          # 3DS screen framebuffers are vertical (240x400 for top screen)
-          # Resize or process as needed, then save raw bytes
-          raw_data = img.tobytes("raw", "RGBA")
+def process_sprites(directory):
+    if not os.path.exists(directory):
+        print(f"Directory not found: {directory}")
+        return
 
-          rel_path = os.path.relpath(root, input_dir)
-          out_subdir = os.path.join(output_dir, rel_path)
-          os.makedirs(out_subdir, exist_ok=True)
+    for filename in os.listdir(directory):
+        filepath = os.path.join(directory, filename)
 
-          out_path = os.path.join(
-              out_subdir, os.path.splitext(file)[0] + ".raw"
-          )
-          with open(out_path, "wb") as f:
-            f.write(raw_data)
-  print("Conversion complete!")
+        # Skip subdirectories if any exist
+        if os.path.isdir(filepath):
+            continue
 
+        # Delete non-PNG files
+        if not filename.lower().endswith('.png'):
+            print(f"Deleting non-PNG file: {filename}")
+            os.remove(filepath)
+            continue
+
+        # Process PNG files
+        try:
+            with Image.open(filepath) as img:
+                # Ensure image has an alpha channel
+                img = img.convert("RGBA")
+                old_w, old_h = img.size
+                
+                new_w = next_power_of_2(old_w)
+                new_h = next_power_of_2(old_h)
+                
+                # Skip if the image is already perfectly sized
+                if old_w == new_w and old_h == new_h:
+                    print(f"Skipping {filename}: already {old_w}x{old_h}")
+                    continue
+                    
+                print(f"Padding {filename} from {old_w}x{old_h} to {new_w}x{new_h}")
+                
+                # Create a new transparent power-of-2 canvas
+                new_img = Image.new("RGBA", (new_w, new_h), (0, 0, 0, 0))
+                
+                # Calculate coordinates to center the original image
+                offset_x = (new_w - old_w) // 2
+                offset_y = (new_h - old_h) // 2
+                
+                # Paste the original image onto the center of the new canvas
+                new_img.paste(img, (offset_x, offset_y))
+                
+            # Overwrite the original file with the new padded version
+            new_img.save(filepath, format="PNG")
+            
+        except Exception as e:
+            print(f"Failed to process {filename}: {e}")
 
 if __name__ == "__main__":
-  convert_to_raw("./romfs/sprites", "./romfs/sprites_raw")
+    target_dir = os.path.join(".", "romfs", "sprites")
+    process_sprites(target_dir)
+    print("Sprite processing complete.")
