@@ -10,14 +10,20 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    container: devkitpro/devkitarm:latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up devkitPro Pacman environment
+        uses: devkitPro/action@v2
+        with:
+          transport: msys2
+          packages: 3ds-dev
+
       - name: Compile Game
         run: make
+        shell: msys2 {0}
 
       - name: Upload 3DS Artifacts
         uses: actions/upload-artifact@v4
