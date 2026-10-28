@@ -1,6 +1,8 @@
 # Among Us: 3DS Edition
 
-<p style="text-alignment: center;">![AMOGUS](banner.png)</p>
+<p align="center">
+  <img src="banner.png" alt="AMOGUS">
+</p>
 
 This is an unofficial port of **Among Us** `v2020.9.22s` *(with a few adjustments)* for the **Nintendo 3DS**, built natively in C++ using **devkitPro**.
 
