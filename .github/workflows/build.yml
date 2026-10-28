@@ -9,20 +9,15 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     container: devkitpro/devkitarm:latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Prepare Linux Tools
-        run: |
-          # Ensures the custom tools are executable in the Linux container environment
-          chmod +x tools/makerom tools/bannertool || true
-
       - name: Compile Game
-        run: make MAKEROM=tools/makerom-linux BANNERTOOL=tools/bannertool-linux
+        run: make
 
       - name: Upload 3DS Artifacts
         uses: actions/upload-artifact@v4
