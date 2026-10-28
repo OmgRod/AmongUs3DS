@@ -29,6 +29,8 @@ namespace engine {
         float m_anchorX = 0.0f;
         float m_anchorY = 0.0f;
         float m_zOrder = 0.0f;
+        float m_contentWidth = 0.0f;
+        float m_contentHeight = 0.0f;
         bool m_visible = true;
 
         Node* m_parent = nullptr;
@@ -62,6 +64,7 @@ namespace engine {
         void setZOrder(float z) { m_zOrder = z; sortAllChildren(); }
         void setVisible(bool visible) { m_visible = visible; }
         void toggleVisibility() { m_visible = !m_visible; }
+        void setContentSize(float w, float h) { m_contentWidth = w; m_contentHeight = h; }
 
         float getX() const { return m_x; }
         float getY() const { return m_y; }
@@ -72,8 +75,8 @@ namespace engine {
         Node* getParent() const { return m_parent; }
         void setParent(Node* parent) { m_parent = parent; }
         
-        virtual float getWidth() const { return 0.0f; }
-        virtual float getHeight() const { return 0.0f; }
+        virtual float getWidth() const { return m_contentWidth; }
+        virtual float getHeight() const { return m_contentHeight; }
     };
 
     class Sprite : public Node {
@@ -95,8 +98,6 @@ namespace engine {
         void clearTint();
 
         virtual void draw(float parentX, float parentY, float parentScaleX, float parentScaleY, float parentRotation) override;
-        virtual float getWidth() const override { return 400.0f; }
-        virtual float getHeight() const override { return 240.0f; }
     };
 
     class DrawNode : public Node {
@@ -106,7 +107,6 @@ namespace engine {
     private:
         ShapeType m_shape;
         u32 m_color = C2D_Color32(255, 255, 255, 255);
-        float m_w = 0.0f, m_h = 0.0f;
         float m_x1 = 0, m_y1 = 0, m_x2 = 0, m_y2 = 0, m_x3 = 0, m_y3 = 0, m_x4 = 0, m_y4 = 0;
 
     public:
@@ -119,11 +119,9 @@ namespace engine {
 
         void setColor(u32 color) { m_color = color; }
         u32 getColor() const { return m_color; }
-        void setSize(float w, float h) { m_w = w; m_h = h; }
+        void setSize(float w, float h) { setContentSize(w, h); }
 
         virtual void draw(float parentX, float parentY, float parentScaleX, float parentScaleY, float parentRotation) override;
-        virtual float getWidth() const override { return m_w; }
-        virtual float getHeight() const override { return m_h; }
     };
 
     class Label : public Node {
@@ -202,7 +200,6 @@ namespace engine {
         std::function<void()> m_onClick;
         u32 m_normalColor;
         u32 m_pressedColor;
-        float m_w, m_h;
         bool m_isPressed = false;
 
     public:
@@ -212,8 +209,6 @@ namespace engine {
         static std::shared_ptr<Button> create(float w, float h, const std::string& title, u32 normalColor, u32 pressedColor, std::function<void()> onClick);
 
         virtual void update(float dt) override;
-        virtual float getWidth() const override { return m_w; }
-        virtual float getHeight() const override { return m_h; }
     };
 
     class Scene : public Node {

@@ -15,12 +15,12 @@ namespace game {
 
         m_innerslothLogo = engine::Sprite::create("romfs:/sprites/logoImage.png");
         if (m_innerslothLogo) {
-            m_innerslothLogo->setPosition(size.width / 2.0f, -100.f);
+            m_innerslothLogo->setPosition(size.width / 2.0f, -100.0f);
             m_innerslothLogo->setAnchorPoint(0.5f, 0.5f);
             m_innerslothLogo->setScale(0.3f);
             this->addChild(m_innerslothLogo);
 
-            m_innerslothLogo->runAction(engine::MoveTo::create(1.0f, size.width / 2.0f, size.height / 2.0f));
+            m_innerslothLogo->runAction(engine::MoveTo::create(2.0f, size.width / 2.0f, size.height / 2.0f));
         }
     }
 
@@ -40,7 +40,8 @@ namespace game {
         m_rodCredit = engine::Label::create("romfs:/fonts/arial.ttf", "Ported to 3DS\nby OmgRod");
         m_rodCredit->setAlignment(engine::Label::HAlign::Center);
         m_rodCredit->setAnchorPoint(0.5f, 0.5f);
-        m_rodCredit->setPosition(size.width / 2, size.height / 2);
+        m_rodCredit->setPosition(size.width / 2.0f, size.height / 2.0f);
+        m_rodCredit->setTextScale(1.0f);
         this->addChild(m_rodCredit);
     }
 

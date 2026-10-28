@@ -237,6 +237,8 @@ namespace engine {
         m_image.subtex = new Tex3DS_SubTexture{(u16)width, (u16)height, 0.0f, 1.0f, right, bottom};
         m_ownsTexture = true;
 
+        setContentSize((float)width, (float)height);
+
         return true;
     }
 
@@ -255,10 +257,10 @@ namespace engine {
         C2D_DrawParams params;
         params.pos.x = parentX;
         params.pos.y = parentY;
-        params.pos.w = m_image.subtex->width * parentScaleX;
-        params.pos.h = m_image.subtex->height * parentScaleY;
-        params.center.x = m_anchorX * m_image.subtex->width;
-        params.center.y = m_anchorY * m_image.subtex->height;
+        params.pos.w = m_contentWidth * parentScaleX;
+        params.pos.h = m_contentHeight * parentScaleY;
+        params.center.x = m_anchorX * params.pos.w;
+        params.center.y = m_anchorY * params.pos.h;
         params.angle = parentRotation * (M_PI / 180.0f);
         params.depth = m_zOrder;
 
@@ -268,8 +270,7 @@ namespace engine {
     std::shared_ptr<DrawNode> DrawNode::createRect(float w, float h, u32 color) {
         auto node = std::make_shared<DrawNode>();
         node->m_shape = Rectangle;
-        node->m_w = w;
-        node->m_h = h;
+        node->setContentSize(w, h);
         node->m_color = color;
         return node;
     }
@@ -296,19 +297,24 @@ namespace engine {
     }
 
     void DrawNode::draw(float parentX, float parentY, float parentScaleX, float parentScaleY, float parentRotation) {
+        float offsetX = m_contentWidth * m_anchorX * parentScaleX;
+        float offsetY = m_contentHeight * m_anchorY * parentScaleY;
+        float startX = parentX - offsetX;
+        float startY = parentY - offsetY;
+
         if (m_shape == Rectangle) {
-            C2D_DrawRectSolid(parentX, parentY, m_zOrder, m_w * parentScaleX, m_h * parentScaleY, m_color);
+            C2D_DrawRectSolid(startX, startY, m_zOrder, m_contentWidth * parentScaleX, m_contentHeight * parentScaleY, m_color);
         } else if (m_shape == Triangle) {
-            C2D_DrawTriangle(parentX + m_x1, parentY + m_y1, m_color,
-                             parentX + m_x2, parentY + m_y2, m_color,
-                             parentX + m_x3, parentY + m_y3, m_color, m_zOrder);
+            C2D_DrawTriangle(startX + m_x1 * parentScaleX, startY + m_y1 * parentScaleY, m_color,
+                             startX + m_x2 * parentScaleX, startY + m_y2 * parentScaleY, m_color,
+                             startX + m_x3 * parentScaleX, startY + m_y3 * parentScaleY, m_color, m_zOrder);
         } else if (m_shape == Quad) {
-            C2D_DrawTriangle(parentX + m_x1, parentY + m_y1, m_color,
-                             parentX + m_x2, parentY + m_y2, m_color,
-                             parentX + m_x3, parentY + m_y3, m_color, m_zOrder);
-            C2D_DrawTriangle(parentX + m_x1, parentY + m_y1, m_color,
-                             parentX + m_x3, parentY + m_y3, m_color,
-                             parentX + m_x4, parentY + m_y4, m_color, m_zOrder);
+            C2D_DrawTriangle(startX + m_x1 * parentScaleX, startY + m_y1 * parentScaleY, m_color,
+                             startX + m_x2 * parentScaleX, startY + m_y2 * parentScaleY, m_color,
+                             startX + m_x3 * parentScaleX, startY + m_y3 * parentScaleY, m_color, m_zOrder);
+            C2D_DrawTriangle(startX + m_x1 * parentScaleX, startY + m_y1 * parentScaleY, m_color,
+                             startX + m_x3 * parentScaleX, startY + m_y3 * parentScaleY, m_color,
+                             startX + m_x4 * parentScaleX, startY + m_y4 * parentScaleY, m_color, m_zOrder);
         }
     }
 
@@ -357,27 +363,33 @@ namespace engine {
 
         C2D_TextParse(&m_text, m_textBuf, m_string.c_str());
         C2D_TextOptimize(&m_text);
+
+        float w = 0.0f, h = 0.0f;
+        C2D_TextGetDimensions(&m_text, 1.0f, 1.0f, &w, &h);
+        setContentSize(w, h);
     }
 
     void Label::draw(float parentX, float parentY, float parentScaleX, float parentScaleY, float parentRotation) {
         if (!m_fontLoaded || m_string.empty()) return;
 
-        // 1. Get raw dimensions
-        float width = 0.0f, height = 0.0f;
-        C2D_TextGetDimensions(&m_text, m_textScaleX * parentScaleX, m_textScaleY * parentScaleY, &width, &height);
+        float width = m_contentWidth * m_textScaleX * parentScaleX;
+        float height = m_contentHeight * m_textScaleY * parentScaleY;
 
-        // 2. Apply explicit Node Anchor offsets
         float renderX = parentX - (width * m_anchorX);
         float renderY = parentY - (height * m_anchorY);
 
-        // 3. Keep HAlign compatibility (counters the anchor if both are 0.5)
+        u32 flags = C2D_WithColor;
+        
         if (m_alignment == HAlign::Center) {
+            flags |= C2D_AlignCenter;
             renderX += width / 2.0f;
         } else if (m_alignment == HAlign::Right) {
+            flags |= C2D_AlignRight;
             renderX += width;
+        } else {
+            flags |= C2D_AlignLeft;
         }
 
-        u32 flags = C2D_WithColor;
         if (m_wrapWidth > 0.0f) {
             flags |= C2D_WordWrap;
             C2D_DrawText(&m_text, flags, renderX, renderY, m_zOrder, 
@@ -408,8 +420,10 @@ namespace engine {
     }
 
     Button::Button(float w, float h, const std::string& title, u32 normalColor, u32 pressedColor, std::function<void()> onClick)
-        : m_onClick(onClick), m_normalColor(normalColor), m_pressedColor(pressedColor), m_w(w), m_h(h) {
+        : m_onClick(onClick), m_normalColor(normalColor), m_pressedColor(pressedColor) {
         
+        setContentSize(w, h);
+
         m_bgRect = DrawNode::createRect(w, h, normalColor);
         addChild(m_bgRect);
 
@@ -439,7 +453,10 @@ namespace engine {
                 p = p->getParent();
             }
 
-            if (touch.px >= absX && touch.px <= absX + m_w && touch.py >= absY && touch.py <= absY + m_h) {
+            float startX = absX - (m_contentWidth * m_anchorX);
+            float startY = absY - (m_contentHeight * m_anchorY);
+
+            if (touch.px >= startX && touch.px <= startX + m_contentWidth && touch.py >= startY && touch.py <= startY + m_contentHeight) {
                 m_isPressed = true;
                 if (m_bgRect) m_bgRect->setColor(m_pressedColor);
                 if (m_onClick) m_onClick();

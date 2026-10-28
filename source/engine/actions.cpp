@@ -16,6 +16,7 @@ namespace engine {
 
     void MoveTo::startWithTarget(Node* target) {
         FiniteTimeAction::startWithTarget(target);
+        m_target = target;
         m_elapsed = 0.0f;
         m_done = false;
         if (m_target) {
@@ -46,6 +47,7 @@ namespace engine {
 
     void MoveBy::startWithTarget(Node* target) {
         FiniteTimeAction::startWithTarget(target);
+        m_target = target;
         m_elapsed = 0.0f;
         m_done = false;
         if (m_target) {
@@ -86,6 +88,7 @@ namespace engine {
 
     void ScaleTo::startWithTarget(Node* target) {
         FiniteTimeAction::startWithTarget(target);
+        m_target = target;
         m_elapsed = 0.0f;
         m_done = false;
         if (m_target) {
@@ -116,6 +119,7 @@ namespace engine {
 
     void RotateBy::startWithTarget(Node* target) {
         FiniteTimeAction::startWithTarget(target);
+        m_target = target;
         m_elapsed = 0.0f;
         m_done = false;
         if (m_target) {
@@ -152,6 +156,7 @@ namespace engine {
 
     void CallFunc::startWithTarget(Node* target) {
         FiniteTimeAction::startWithTarget(target);
+        m_target = target;
         if (m_func) m_func();
         m_done = true;
     }
@@ -172,6 +177,7 @@ namespace engine {
 
     void PlaySound::startWithTarget(Node* target) {
         FiniteTimeAction::startWithTarget(target);
+        m_target = target;
         AudioEngine::getInstance().playSFX(m_soundPath, m_loop);
         m_done = true;
     }
@@ -191,6 +197,7 @@ namespace engine {
 
     void Sequence::startWithTarget(Node* target) {
         FiniteTimeAction::startWithTarget(target);
+        m_target = target;
         m_index = 0;
         m_elapsed = 0.0f;
         m_done = false;
@@ -237,6 +244,7 @@ namespace engine {
 
     void Spawn::startWithTarget(Node* target) {
         FiniteTimeAction::startWithTarget(target);
+        m_target = target;
         m_elapsed = 0.0f;
         m_done = false;
         for (auto& a : m_actions) {
@@ -266,6 +274,7 @@ namespace engine {
 
     void RepeatForever::startWithTarget(Node* target) {
         Action::startWithTarget(target);
+        m_target = target;
         if (m_innerAction) m_innerAction->startWithTarget(target);
     }
 
