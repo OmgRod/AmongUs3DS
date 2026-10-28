@@ -7,7 +7,7 @@
 #include <map>
 #include <functional>
 #include <algorithm>
-#include <engine/Filesystem.hpp>
+#include <engine/filesystem.hpp>
 #include <engine/math.hpp>
 
 namespace engine {
