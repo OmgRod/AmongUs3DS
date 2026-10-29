@@ -88,12 +88,13 @@ namespace engine {
 
     void Node::draw(float parentX, float parentY, float parentScaleX, float parentScaleY, float parentRotation) {}
 
-    void Node::visit(float parentX, float parentY, float parentScaleX, float parentScaleY, float parentRotation) {
+    void Node::visit(float parentX, float parentY, float parentScaleX, float parentScaleY, float parentRotation, float parentOpacity) {
         if (!m_visible) return;
 
         float absScaleX = m_scaleX * parentScaleX;
         float absScaleY = m_scaleY * parentScaleY;
         float absRot = m_rotation + parentRotation;
+        float absOpacity = m_opacity * parentOpacity;
 
         float rad = parentRotation * (M_PI / 180.0f);
         float cosA = cos(rad);
@@ -108,7 +109,7 @@ namespace engine {
         draw(absX, absY, absScaleX, absScaleY, absRot);
 
         for (auto& child : m_children) {
-            child->visit(absX, absY, absScaleX, absScaleY, absRot);
+            child->visit(absX, absY, absScaleX, absScaleY, absRot, absOpacity);
         }
     }
 
@@ -199,8 +200,8 @@ namespace engine {
             int localY = y % 8;
 
             int pixelInTile = (localX & 1)       | ((localY & 1) << 1) |
-                              ((localX & 2) << 1) | ((localY & 2) << 2) |
-                              ((localX & 4) << 2) | ((localY & 4) << 3);
+                            ((localX & 2) << 1) | ((localY & 2) << 2) |
+                            ((localX & 4) << 2) | ((localY & 4) << 3);
 
             return ((tileIndex * 64) + pixelInTile) * 4;
         };
@@ -264,9 +265,21 @@ namespace engine {
         params.angle = parentRotation * (M_PI / 180.0f);
         params.depth = m_zOrder;
 
-        C2D_DrawImage(m_image, &params, m_hasTint ? &m_tint : nullptr);
-    }
+        C2D_ImageTint* tintPtr = nullptr;
+        C2D_ImageTint drawTint;
 
+        if (m_hasTint || m_opacity < 1.0f) {
+            if (m_hasTint) {
+                drawTint = m_tint;
+            } else {
+                C2D_PlainImageTint(&drawTint, C2D_Color32(255, 255, 255, 255), m_opacity);
+            }
+            tintPtr = &drawTint;
+        }
+
+        C2D_DrawImage(m_image, &params, tintPtr);
+    }
+    
     std::shared_ptr<DrawNode> DrawNode::createRect(float w, float h, u32 color) {
         auto node = std::make_shared<DrawNode>();
         node->m_shape = Rectangle;
@@ -302,19 +315,25 @@ namespace engine {
         float startX = parentX - offsetX;
         float startY = parentY - offsetY;
 
+        u32 r = m_color & 0xFF;
+        u32 g = (m_color >> 8) & 0xFF;
+        u32 b = (m_color >> 16) & 0xFF;
+        u32 a = (m_color >> 24) & 0xFF;
+        u32 finalColor = C2D_Color32(r, g, b, static_cast<u8>(a * m_opacity));
+
         if (m_shape == Rectangle) {
-            C2D_DrawRectSolid(startX, startY, m_zOrder, m_contentWidth * parentScaleX, m_contentHeight * parentScaleY, m_color);
+            C2D_DrawRectSolid(startX, startY, m_zOrder, m_contentWidth * parentScaleX, m_contentHeight * parentScaleY, finalColor);
         } else if (m_shape == Triangle) {
-            C2D_DrawTriangle(startX + m_x1 * parentScaleX, startY + m_y1 * parentScaleY, m_color,
-                             startX + m_x2 * parentScaleX, startY + m_y2 * parentScaleY, m_color,
-                             startX + m_x3 * parentScaleX, startY + m_y3 * parentScaleY, m_color, m_zOrder);
+            C2D_DrawTriangle(startX + m_x1 * parentScaleX, startY + m_y1 * parentScaleY, finalColor,
+                             startX + m_x2 * parentScaleX, startY + m_y2 * parentScaleY, finalColor,
+                             startX + m_x3 * parentScaleX, startY + m_y3 * parentScaleY, finalColor, m_zOrder);
         } else if (m_shape == Quad) {
-            C2D_DrawTriangle(startX + m_x1 * parentScaleX, startY + m_y1 * parentScaleY, m_color,
-                             startX + m_x2 * parentScaleX, startY + m_y2 * parentScaleY, m_color,
-                             startX + m_x3 * parentScaleX, startY + m_y3 * parentScaleY, m_color, m_zOrder);
-            C2D_DrawTriangle(startX + m_x1 * parentScaleX, startY + m_y1 * parentScaleY, m_color,
-                             startX + m_x3 * parentScaleX, startY + m_y3 * parentScaleY, m_color,
-                             startX + m_x4 * parentScaleX, startY + m_y4 * parentScaleY, m_color, m_zOrder);
+            C2D_DrawTriangle(startX + m_x1 * parentScaleX, startY + m_y1 * parentScaleY, finalColor,
+                             startX + m_x2 * parentScaleX, startY + m_y2 * parentScaleY, finalColor,
+                             startX + m_x3 * parentScaleX, startY + m_y3 * parentScaleY, finalColor, m_zOrder);
+            C2D_DrawTriangle(startX + m_x1 * parentScaleX, startY + m_y1 * parentScaleY, finalColor,
+                             startX + m_x3 * parentScaleX, startY + m_y3 * parentScaleY, finalColor,
+                             startX + m_x4 * parentScaleX, startY + m_y4 * parentScaleY, finalColor, m_zOrder);
         }
     }
 
@@ -390,13 +409,19 @@ namespace engine {
             flags |= C2D_AlignLeft;
         }
 
+        u32 r = m_color & 0xFF;
+        u32 g = (m_color >> 8) & 0xFF;
+        u32 b = (m_color >> 16) & 0xFF;
+        u32 a = (m_color >> 24) & 0xFF;
+        u32 finalColor = C2D_Color32(r, g, b, static_cast<u8>(a * m_opacity));
+
         if (m_wrapWidth > 0.0f) {
             flags |= C2D_WordWrap;
             C2D_DrawText(&m_text, flags, renderX, renderY, m_zOrder, 
-                         m_textScaleX * parentScaleX, m_textScaleY * parentScaleY, m_color, m_wrapWidth / parentScaleX);
+                         m_textScaleX * parentScaleX, m_textScaleY * parentScaleY, finalColor, m_wrapWidth / parentScaleX);
         } else {
             C2D_DrawText(&m_text, flags, renderX, renderY, m_zOrder, 
-                         m_textScaleX * parentScaleX, m_textScaleY * parentScaleY, m_color);
+                         m_textScaleX * parentScaleX, m_textScaleY * parentScaleY, finalColor);
         }
     }
 
@@ -571,13 +596,13 @@ namespace engine {
             C2D_TargetClear(topTarget, m_topClearColor);
             C2D_SceneBegin(topTarget);
             if (m_topScene) {
-                m_topScene->visit(0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
+                m_topScene->visit(0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f);
             }
 
             C2D_TargetClear(bottomTarget, m_bottomClearColor);
             C2D_SceneBegin(bottomTarget);
             if (m_bottomScene) {
-                m_bottomScene->visit(0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
+                m_bottomScene->visit(0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f);
             }
 
             C3D_FrameEnd(0);

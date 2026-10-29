@@ -124,6 +124,32 @@ namespace engine {
         void step(float dt) override;
     };
 
+    class FadeIn : public FiniteTimeAction {
+    private:
+        float m_startOpacity = 0.0f;
+        float m_endOpacity = 1.0f;
+        Ease::EaseFunc m_ease;
+
+    public:
+        FadeIn(float duration, Ease::EaseFunc ease = Ease::Linear);
+        static std::shared_ptr<FadeIn> create(float duration, Ease::EaseFunc ease = Ease::Linear);
+        void startWithTarget(Node* target) override;
+        void step(float dt) override;
+    };
+
+    class FadeOut : public FiniteTimeAction {
+    private:
+        float m_startOpacity = 1.0f;
+        float m_endOpacity = 0.0f;
+        Ease::EaseFunc m_ease;
+
+    public:
+        FadeOut(float duration, Ease::EaseFunc ease = Ease::Linear);
+        static std::shared_ptr<FadeOut> create(float duration, Ease::EaseFunc ease = Ease::Linear);
+        void startWithTarget(Node* target) override;
+        void step(float dt) override;
+    };
+
     class DelayTime : public FiniteTimeAction {
     public:
         DelayTime(float duration) : FiniteTimeAction(duration) {}

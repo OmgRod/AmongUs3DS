@@ -31,6 +31,7 @@ namespace engine {
         float m_zOrder = 0.0f;
         float m_contentWidth = 0.0f;
         float m_contentHeight = 0.0f;
+        float m_opacity = 1.0f;
         bool m_visible = true;
 
         Node* m_parent = nullptr;
@@ -45,7 +46,7 @@ namespace engine {
 
         virtual void update(float dt);
         virtual void draw(float parentX, float parentY, float parentScaleX, float parentScaleY, float parentRotation);
-        virtual void visit(float parentX, float parentY, float parentScaleX, float parentScaleY, float parentRotation);
+        virtual void visit(float parentX, float parentY, float parentScaleX, float parentScaleY, float parentRotation, float parentOpacity = 1.0f);
 
         void addChild(std::shared_ptr<Node> child);
         void removeChild(std::shared_ptr<Node> child);
@@ -65,6 +66,9 @@ namespace engine {
         void setVisible(bool visible) { m_visible = visible; }
         void toggleVisibility() { m_visible = !m_visible; }
         void setContentSize(float w, float h) { m_contentWidth = w; m_contentHeight = h; }
+        
+        void setOpacity(float opacity) { m_opacity = std::clamp(opacity, 0.0f, 1.0f); }
+        float getOpacity() const { return m_opacity; }
 
         float getX() const { return m_x; }
         float getY() const { return m_y; }

@@ -7,6 +7,7 @@ namespace game {
     class SplashSceneTop : public engine::Scene {
     private:
         std::shared_ptr<engine::Sprite> m_innerslothLogo;
+        std::shared_ptr<engine::DrawNode> m_fadeOut;
 
     public:
         static std::shared_ptr<SplashSceneTop> create();

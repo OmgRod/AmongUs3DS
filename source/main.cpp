@@ -20,8 +20,7 @@ int main(int argc, char **argv) {
 
     auto& director = engine::Director::getInstance();
 
-    director.setClearColorTop(15, 15, 25, 255);       
-    director.setClearColorBottom(35, 35, 45, 255);    
+    director.setClearColor(0, 0, 0, 255);
 
     auto topScene = game::SplashSceneTop::create();
     auto bottomScene = game::SplashSceneBottom::create();

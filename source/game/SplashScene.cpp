@@ -1,4 +1,6 @@
 #include <game/SplashScene.hpp>
+#include <game/MenuScene.hpp>
+#include <game/objects/Starfield.hpp>
 #include <engine/actions.hpp>
 #include <engine/input.hpp>
 
@@ -13,6 +15,8 @@ namespace game {
     void SplashSceneTop::init() {
         auto size = engine::Director::getInstance().getTopScreenSize();
 
+        m_starfield = game::Starfield::create(size.width, size.height, 60);
+
         m_innerslothLogo = engine::Sprite::create("romfs:/sprites/logoImage.png");
         if (m_innerslothLogo) {
             m_innerslothLogo->setPosition(size.width / 2.0f, -100.0f);
@@ -20,7 +24,30 @@ namespace game {
             m_innerslothLogo->setScale(0.3f);
             this->addChild(m_innerslothLogo);
 
-            m_innerslothLogo->runAction(engine::MoveTo::create(2.0f, size.width / 2.0f, size.height / 2.0f));
+            auto logoPtr = m_innerslothLogo;
+
+            m_innerslothLogo->runAction(engine::Sequence::create(
+                engine::PlaySound::create("romfs:/audio/panel_admin_cardmove1.wav"),
+                engine::MoveTo::create(1.0f, size.width / 2.0f, size.height / 2.0f, engine::Ease::SineInOut),
+                engine::DelayTime::create(0.2f),
+                engine::PlaySound::create("romfs:/audio/task_Complete.wav"),
+                engine::ScaleTo::create(0.25f, 0.325f, engine::Ease::SineIn),
+                engine::ScaleTo::create(0.25f, 0.3f, engine::Ease::SineOut),
+                engine::CallFunc::create([logoPtr]() {
+                    logoPtr->runAction(engine::Sequence::create(
+                        engine::FadeOut::create(0.5f),
+                        engine::CallFunc::create([]() {
+                            auto menuSceneTop = game::MenuScene::create();
+                            auto menuSceneBottom = game::MenuScene::create();
+
+                            engine::Director::getInstance().replaceTopScene(menuSceneTop);
+                            engine::Director::getInstance().replaceBottomScene(menuSceneBottom);
+                        }),
+                        nullptr
+                    ));
+                }),
+                nullptr
+            ));
         }
     }
 

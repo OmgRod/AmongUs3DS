@@ -137,6 +137,66 @@ namespace engine {
         if (progress >= 1.0f) m_done = true;
     }
 
+    FadeIn::FadeIn(float duration, Ease::EaseFunc ease)
+        : FiniteTimeAction(duration), m_ease(ease) {
+        m_elapsed = 0.0f;
+        m_done = false;
+    }
+
+    std::shared_ptr<FadeIn> FadeIn::create(float duration, Ease::EaseFunc ease) {
+        return std::make_shared<FadeIn>(duration, ease);
+    }
+
+    void FadeIn::startWithTarget(Node* target) {
+        FiniteTimeAction::startWithTarget(target);
+        m_target = target;
+        m_elapsed = 0.0f;
+        m_done = false;
+        if (m_target) {
+            m_startOpacity = m_target->getOpacity();
+        }
+    }
+
+    void FadeIn::step(float dt) {
+        if (!m_target || m_done) return;
+        m_elapsed += dt;
+        float progress = m_duration > 0.0f ? std::min(1.0f, m_elapsed / m_duration) : 1.0f;
+        float t = m_ease ? m_ease(progress) : progress;
+
+        m_target->setOpacity(m_startOpacity + (m_endOpacity - m_startOpacity) * t);
+        if (progress >= 1.0f) m_done = true;
+    }
+
+    FadeOut::FadeOut(float duration, Ease::EaseFunc ease)
+        : FiniteTimeAction(duration), m_ease(ease) {
+        m_elapsed = 0.0f;
+        m_done = false;
+    }
+
+    std::shared_ptr<FadeOut> FadeOut::create(float duration, Ease::EaseFunc ease) {
+        return std::make_shared<FadeOut>(duration, ease);
+    }
+
+    void FadeOut::startWithTarget(Node* target) {
+        FiniteTimeAction::startWithTarget(target);
+        m_target = target;
+        m_elapsed = 0.0f;
+        m_done = false;
+        if (m_target) {
+            m_startOpacity = m_target->getOpacity();
+        }
+    }
+
+    void FadeOut::step(float dt) {
+        if (!m_target || m_done) return;
+        m_elapsed += dt;
+        float progress = m_duration > 0.0f ? std::min(1.0f, m_elapsed / m_duration) : 1.0f;
+        float t = m_ease ? m_ease(progress) : progress;
+
+        m_target->setOpacity(m_startOpacity + (m_endOpacity - m_startOpacity) * t);
+        if (progress >= 1.0f) m_done = true;
+    }
+
     std::shared_ptr<DelayTime> DelayTime::create(float duration) {
         auto action = std::make_shared<DelayTime>(duration);
         action->m_elapsed = 0.0f;
