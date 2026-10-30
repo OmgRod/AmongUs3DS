@@ -221,9 +221,6 @@ namespace engine {
         u32 m_topClearColor;
         u32 m_bottomClearColor;
 
-        // Pending scene transitions requested while inside update().
-        // Applied at the end of each frame to avoid destroying a scene
-        // while its own update call-stack is still active.
         bool m_hasPendingTop = false;
         bool m_hasPendingBottom = false;
         std::shared_ptr<Scene> m_pendingTopScene;

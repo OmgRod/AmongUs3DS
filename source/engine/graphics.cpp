@@ -62,9 +62,6 @@ namespace engine {
     }
 
     void Node::update(float dt) {
-        // Snapshot the actions list before stepping. Callbacks (e.g. CallFunc)
-        // may call runAction() or stopAllActions() on this node, which would
-        // invalidate any live iterator or reference into m_actions.
         auto actionsCopy = m_actions;
         for (auto& action : actionsCopy) {
             if (!action) continue;
@@ -73,13 +70,11 @@ namespace engine {
             }
         }
 
-        // Now prune completed / null actions from the real list.
         m_actions.erase(
             std::remove_if(m_actions.begin(), m_actions.end(),
                 [](const std::shared_ptr<Action>& a) { return !a || a->isDone(); }),
             m_actions.end());
 
-        // Snapshot children too in case update callbacks modify the child list.
         auto childrenCopy = m_children;
         for (auto& child : childrenCopy) {
             if (child && child->m_visible) {
@@ -526,7 +521,6 @@ namespace engine {
     }
 
     void Director::setTopScene(std::shared_ptr<Scene> scene) {
-        // Buffer the transition — may be called from inside update().
         m_pendingTopScene = scene;
         m_hasPendingTop = true;
     }
@@ -537,7 +531,6 @@ namespace engine {
     }
 
     void Director::runWithScenes(std::shared_ptr<Scene> topScene, std::shared_ptr<Scene> bottomScene) {
-        // runWithScenes is called at startup before the loop, so apply directly.
         m_topScene = topScene;
         m_bottomScene = bottomScene;
     }
@@ -601,10 +594,7 @@ namespace engine {
             if (m_bottomScene) {
                 m_bottomScene->update(dt);
             }
-
-            // Apply any scene transitions that were requested during update()
-            // (e.g. from a CallFunc callback). Doing this here ensures no scene
-            // is destroyed while its own update call-stack is still active.
+            
             flushPendingScenes();
 
             C3D_FrameBegin(C3D_FRAME_SYNCDRAW);

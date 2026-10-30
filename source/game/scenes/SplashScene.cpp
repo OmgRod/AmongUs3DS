@@ -58,6 +58,7 @@ namespace game {
                 engine::CallFunc::create([fadePtr]() {
                     fadePtr->runAction(engine::Sequence::create(
                         engine::FadeIn::create(0.5f),
+                        engine::DelayTime::create(0.15f),
                         engine::CallFunc::create([]() {
                             auto menuSceneTop = game::MenuSceneTop::create();
                             auto menuSceneBottom = game::MenuSceneBottom::create();
@@ -106,9 +107,9 @@ namespace game {
         m_fadeOut = engine::DrawNode::createRect(size.width, size.height, C2D_Color32(0, 0, 0, 255));
         this->addChild(m_fadeOut);
         m_fadeOut->runAction(engine::Sequence::create(
-            engine::FadeOut::create(0.5f, engine::Ease::SineIn),
-            engine::DelayTime::create(2.0f),
-            engine::FadeIn::create(0.5f, engine::Ease::SineOut)
+            engine::FadeOut::create(0.5f),
+            engine::DelayTime::create(1.7f),
+            engine::FadeIn::create(0.5f)
         ));
     }
 

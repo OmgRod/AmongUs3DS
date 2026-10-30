@@ -198,7 +198,7 @@ namespace engine {
     public:
         StopSound(uint32_t soundId);
         StopSound(std::string identifier, Mode mode);
-        StopSound(); // Stop all
+        StopSound();
 
         static std::shared_ptr<StopSound> create(uint32_t soundId);
         static std::shared_ptr<StopSound> createByTag(const std::string& tag);

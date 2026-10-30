@@ -72,10 +72,6 @@ void AudioEngine::applyChannelRate(Sound& sound) {
 }
 
 bool AudioEngine::init() {
-    // Citra and other 3DS emulators use HLE for DSP audio, but libctru's ndspInit()
-    // checks if sdmc:/3ds/dspfirm.cdc exists on the virtual SD card. If absent,
-    // ndspInit() fails with an error and disables audio. A 0-byte dummy file satisfies
-    // the check and allows emulator audio to work immediately without manual setup.
     FILE* checkFirm = std::fopen("sdmc:/3ds/dspfirm.cdc", "rb");
     if (!checkFirm) {
         mkdir("sdmc:/3ds", 0777);
@@ -89,7 +85,6 @@ bool AudioEngine::init() {
 
     Result res = ndspInit();
     if (R_FAILED(res)) {
-        // Fallback retry in case directory/file wasn't created on first attempt
         mkdir("sdmc:/3ds", 0777);
         FILE* f = std::fopen("sdmc:/3ds/dspfirm.cdc", "wb");
         if (f) {
@@ -230,7 +225,6 @@ SoundId AudioEngine::playSFX(const std::string& path, const SoundParams& params)
     std::memcpy(audioBuffer, fileData.data() + dataOffset, dataSize);
     DSP_FlushDataCache(audioBuffer, dataSize);
 
-    // Find a free channel (0..23)
     int channel = -1;
     for (int i = 0; i < 24; i++) {
         bool inUse = false;
