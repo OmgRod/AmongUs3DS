@@ -1,13 +1,6 @@
 #pragma once
 
-#include <citro2d.h>
-#include <vector>
-#include <memory>
-#include <string>
-#include <map>
-#include <functional>
-#include <algorithm>
-#include <engine/filesystem.hpp>
+#include <includes.hpp>
 #include <engine/math.hpp>
 
 namespace engine {
@@ -228,6 +221,16 @@ namespace engine {
         u32 m_topClearColor;
         u32 m_bottomClearColor;
 
+        // Pending scene transitions requested while inside update().
+        // Applied at the end of each frame to avoid destroying a scene
+        // while its own update call-stack is still active.
+        bool m_hasPendingTop = false;
+        bool m_hasPendingBottom = false;
+        std::shared_ptr<Scene> m_pendingTopScene;
+        std::shared_ptr<Scene> m_pendingBottomScene;
+
+        void flushPendingScenes();
+
         Director();
         ~Director();
 
@@ -248,9 +251,6 @@ namespace engine {
         void setBottomScene(std::shared_ptr<Scene> scene);
         void runWithScenes(std::shared_ptr<Scene> topScene, std::shared_ptr<Scene> bottomScene);
 
-        void replaceTopScene(std::shared_ptr<Scene> newScene);
-        void replaceBottomScene(std::shared_ptr<Scene> newScene);
-        
         std::shared_ptr<Scene> getTopScene() const { return m_topScene; }
         std::shared_ptr<Scene> getBottomScene() const { return m_bottomScene; }
 

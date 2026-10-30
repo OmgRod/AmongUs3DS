@@ -172,10 +172,39 @@ namespace engine {
     private:
         std::string m_soundPath;
         bool m_loop;
+        float m_volume;
+        float m_pan;
+        float m_pitch;
+        std::string m_tag;
+        uint32_t m_soundId = 0;
 
     public:
-        PlaySound(std::string soundPath, bool loop = false);
-        static std::shared_ptr<PlaySound> create(std::string soundPath, bool loop = false);
+        PlaySound(std::string soundPath, bool loop = false, float volume = 1.0f, float pan = 0.0f, float pitch = 1.0f, std::string tag = "");
+        static std::shared_ptr<PlaySound> create(std::string soundPath, bool loop = false, float volume = 1.0f, float pan = 0.0f, float pitch = 1.0f, std::string tag = "");
+        void startWithTarget(Node* target) override;
+        void step(float dt) override;
+        uint32_t getSoundId() const { return m_soundId; }
+    };
+
+    class StopSound : public FiniteTimeAction {
+    public:
+        enum class Mode { ById, ByTag, ByPath, All };
+
+    private:
+        uint32_t m_soundId = 0;
+        std::string m_identifier;
+        Mode m_mode = Mode::All;
+
+    public:
+        StopSound(uint32_t soundId);
+        StopSound(std::string identifier, Mode mode);
+        StopSound(); // Stop all
+
+        static std::shared_ptr<StopSound> create(uint32_t soundId);
+        static std::shared_ptr<StopSound> createByTag(const std::string& tag);
+        static std::shared_ptr<StopSound> createByPath(const std::string& path);
+        static std::shared_ptr<StopSound> createAll();
+
         void startWithTarget(Node* target) override;
         void step(float dt) override;
     };

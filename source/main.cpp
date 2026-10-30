@@ -1,6 +1,6 @@
 #include <includes.hpp>
 #include <malloc.h>
-#include <game/SplashScene.hpp>
+#include <game/scenes/SplashScene.hpp>
 
 int main(int argc, char **argv) {
     gfxInitDefault();

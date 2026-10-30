@@ -22,6 +22,8 @@ namespace engine {
         if (m_target) {
             m_startX = m_target->getX();
             m_startY = m_target->getY();
+        } else {
+            m_done = true;
         }
     }
 
@@ -94,6 +96,8 @@ namespace engine {
         if (m_target) {
             m_startX = m_target->getScaleX();
             m_startY = m_target->getScaleY();
+        } else {
+            m_done = true;
         }
     }
 
@@ -124,6 +128,8 @@ namespace engine {
         m_done = false;
         if (m_target) {
             m_startAngle = m_target->getRotation();
+        } else {
+            m_done = true;
         }
     }
 
@@ -154,6 +160,8 @@ namespace engine {
         m_done = false;
         if (m_target) {
             m_startOpacity = m_target->getOpacity();
+        } else {
+            m_done = true;
         }
     }
 
@@ -184,6 +192,8 @@ namespace engine {
         m_done = false;
         if (m_target) {
             m_startOpacity = m_target->getOpacity();
+        } else {
+            m_done = true;
         }
     }
 
@@ -216,6 +226,8 @@ namespace engine {
 
     void CallFunc::startWithTarget(Node* target) {
         FiniteTimeAction::startWithTarget(target);
+        if (!m_target) return;
+        
         m_target = target;
         if (m_func) m_func();
         m_done = true;
@@ -225,24 +237,81 @@ namespace engine {
         m_done = true;
     }
 
-    PlaySound::PlaySound(std::string soundPath, bool loop)
-        : FiniteTimeAction(0.0f), m_soundPath(soundPath), m_loop(loop) {
+    PlaySound::PlaySound(std::string soundPath, bool loop, float volume, float pan, float pitch, std::string tag)
+        : FiniteTimeAction(0.0f), m_soundPath(soundPath), m_loop(loop),
+          m_volume(volume), m_pan(pan), m_pitch(pitch), m_tag(tag) {
         m_elapsed = 0.0f;
         m_done = false;
     }
 
-    std::shared_ptr<PlaySound> PlaySound::create(std::string soundPath, bool loop) {
-        return std::make_shared<PlaySound>(soundPath, loop);
+    std::shared_ptr<PlaySound> PlaySound::create(std::string soundPath, bool loop, float volume, float pan, float pitch, std::string tag) {
+        return std::make_shared<PlaySound>(soundPath, loop, volume, pan, pitch, tag);
     }
 
     void PlaySound::startWithTarget(Node* target) {
         FiniteTimeAction::startWithTarget(target);
         m_target = target;
-        AudioEngine::getInstance().playSFX(m_soundPath, m_loop);
+        m_soundId = AudioEngine::getInstance().playSFX(m_soundPath, m_volume, m_pan, m_pitch, m_loop, m_tag);
         m_done = true;
     }
 
     void PlaySound::step(float dt) {
+        m_done = true;
+    }
+
+    StopSound::StopSound(uint32_t soundId)
+        : FiniteTimeAction(0.0f), m_soundId(soundId), m_mode(Mode::ById) {
+        m_done = false;
+    }
+
+    StopSound::StopSound(std::string identifier, Mode mode)
+        : FiniteTimeAction(0.0f), m_identifier(std::move(identifier)), m_mode(mode) {
+        m_done = false;
+    }
+
+    StopSound::StopSound()
+        : FiniteTimeAction(0.0f), m_mode(Mode::All) {
+        m_done = false;
+    }
+
+    std::shared_ptr<StopSound> StopSound::create(uint32_t soundId) {
+        return std::make_shared<StopSound>(soundId);
+    }
+
+    std::shared_ptr<StopSound> StopSound::createByTag(const std::string& tag) {
+        return std::make_shared<StopSound>(tag, Mode::ByTag);
+    }
+
+    std::shared_ptr<StopSound> StopSound::createByPath(const std::string& path) {
+        return std::make_shared<StopSound>(path, Mode::ByPath);
+    }
+
+    std::shared_ptr<StopSound> StopSound::createAll() {
+        return std::make_shared<StopSound>();
+    }
+
+    void StopSound::startWithTarget(Node* target) {
+        FiniteTimeAction::startWithTarget(target);
+        m_target = target;
+        auto& audio = AudioEngine::getInstance();
+        switch (m_mode) {
+            case Mode::ById:
+                audio.stop(m_soundId);
+                break;
+            case Mode::ByTag:
+                audio.stopByTag(m_identifier);
+                break;
+            case Mode::ByPath:
+                audio.stopByPath(m_identifier);
+                break;
+            case Mode::All:
+                audio.stopAll();
+                break;
+        }
+        m_done = true;
+    }
+
+    void StopSound::step(float dt) {
         m_done = true;
     }
 

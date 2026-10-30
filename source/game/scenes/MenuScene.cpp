@@ -1,4 +1,4 @@
-#include <game/MenuScene.hpp>
+#include <game/scenes/MenuScene.hpp>
 #include <engine/actions.hpp>
 #include <engine/input.hpp>
 
@@ -11,7 +11,7 @@ namespace game {
     }
 
     void MenuSceneTop::init() {
-        
+        engine::AudioEngine::getInstance().playSFX("romfs:/audio/AmongUsTheme.wav", true);
     }
 
     void MenuSceneTop::update(float dt) {

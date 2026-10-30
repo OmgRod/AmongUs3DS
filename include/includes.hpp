@@ -35,6 +35,7 @@
 #include <engine/graphics.hpp>
 #include <engine/hazel.hpp>
 #include <engine/input.hpp>
+#include <engine/math.hpp>
 #include <engine/mii.hpp>
 #include <engine/network.hpp>
 #include <engine/nfc.hpp>

@@ -11,7 +11,7 @@ namespace game {
     public:
         static std::shared_ptr<MenuSceneTop> create();
         void init();
-        void update(float dt) override;
+        void update(float dt);
     };
 
     class MenuSceneBottom : public engine::Scene {
@@ -21,7 +21,7 @@ namespace game {
     public:
         static std::shared_ptr<MenuSceneBottom> create();
         void init();
-        void update(float dt) override;
+        void update(float dt);
     };
 
 }

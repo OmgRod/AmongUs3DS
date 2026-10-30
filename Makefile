@@ -12,7 +12,7 @@ include $(DEVKITARM)/3ds_rules
 #---------------------------------------------------------------------------------
 TARGET      := AmongUs3DS
 BUILD       := build
-SOURCES     := source source/engine source/game
+SOURCES     := source source/engine source/game source/game/scenes source/game/objects
 DATA        := data
 INCLUDES    := include
 ROMFS       := romfs

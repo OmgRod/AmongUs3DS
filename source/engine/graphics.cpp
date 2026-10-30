@@ -1,6 +1,7 @@
 #include <engine/graphics.hpp>
 #include <engine/actions.hpp>
 #include <engine/input.hpp>
+#include <engine/audio.hpp>
 #include <math.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -61,26 +62,27 @@ namespace engine {
     }
 
     void Node::update(float dt) {
-        for (auto it = m_actions.begin(); it != m_actions.end(); ) {
-            auto& action = *it;
-            if (action) {
-                if (!action->isDone()) {
-                    action->step(dt);
-                }
-                
-                if (action->isDone()) {
-                    it = m_actions.erase(it);
-                    continue;
-                }
-            } else {
-                it = m_actions.erase(it);
-                continue;
+        // Snapshot the actions list before stepping. Callbacks (e.g. CallFunc)
+        // may call runAction() or stopAllActions() on this node, which would
+        // invalidate any live iterator or reference into m_actions.
+        auto actionsCopy = m_actions;
+        for (auto& action : actionsCopy) {
+            if (!action) continue;
+            if (!action->isDone()) {
+                action->step(dt);
             }
-            ++it;
         }
 
-        for (auto& child : m_children) {
-            if (child->m_visible) {
+        // Now prune completed / null actions from the real list.
+        m_actions.erase(
+            std::remove_if(m_actions.begin(), m_actions.end(),
+                [](const std::shared_ptr<Action>& a) { return !a || a->isDone(); }),
+            m_actions.end());
+
+        // Snapshot children too in case update callbacks modify the child list.
+        auto childrenCopy = m_children;
+        for (auto& child : childrenCopy) {
+            if (child && child->m_visible) {
                 child->update(dt);
             }
         }
@@ -263,7 +265,7 @@ namespace engine {
         params.center.x = m_anchorX * params.pos.w;
         params.center.y = m_anchorY * params.pos.h;
         params.angle = parentRotation * (M_PI / 180.0f);
-        params.depth = m_zOrder;
+        params.depth = 0.5f;
 
         C2D_ImageTint* tintPtr = nullptr;
         C2D_ImageTint drawTint;
@@ -322,18 +324,18 @@ namespace engine {
         u32 finalColor = C2D_Color32(r, g, b, static_cast<u8>(a * m_opacity));
 
         if (m_shape == Rectangle) {
-            C2D_DrawRectSolid(startX, startY, m_zOrder, m_contentWidth * parentScaleX, m_contentHeight * parentScaleY, finalColor);
+            C2D_DrawRectSolid(startX, startY, 0.5f, m_contentWidth * parentScaleX, m_contentHeight * parentScaleY, finalColor);
         } else if (m_shape == Triangle) {
             C2D_DrawTriangle(startX + m_x1 * parentScaleX, startY + m_y1 * parentScaleY, finalColor,
                              startX + m_x2 * parentScaleX, startY + m_y2 * parentScaleY, finalColor,
-                             startX + m_x3 * parentScaleX, startY + m_y3 * parentScaleY, finalColor, m_zOrder);
+                             startX + m_x3 * parentScaleX, startY + m_y3 * parentScaleY, finalColor, 0.5f);
         } else if (m_shape == Quad) {
             C2D_DrawTriangle(startX + m_x1 * parentScaleX, startY + m_y1 * parentScaleY, finalColor,
                              startX + m_x2 * parentScaleX, startY + m_y2 * parentScaleY, finalColor,
-                             startX + m_x3 * parentScaleX, startY + m_y3 * parentScaleY, finalColor, m_zOrder);
+                             startX + m_x3 * parentScaleX, startY + m_y3 * parentScaleY, finalColor, 0.5f);
             C2D_DrawTriangle(startX + m_x1 * parentScaleX, startY + m_y1 * parentScaleY, finalColor,
                              startX + m_x3 * parentScaleX, startY + m_y3 * parentScaleY, finalColor,
-                             startX + m_x4 * parentScaleX, startY + m_y4 * parentScaleY, finalColor, m_zOrder);
+                             startX + m_x4 * parentScaleX, startY + m_y4 * parentScaleY, finalColor, 0.5f);
         }
     }
 
@@ -417,10 +419,10 @@ namespace engine {
 
         if (m_wrapWidth > 0.0f) {
             flags |= C2D_WordWrap;
-            C2D_DrawText(&m_text, flags, renderX, renderY, m_zOrder, 
+            C2D_DrawText(&m_text, flags, renderX, renderY, 0.5f, 
                          m_textScaleX * parentScaleX, m_textScaleY * parentScaleY, finalColor, m_wrapWidth / parentScaleX);
         } else {
-            C2D_DrawText(&m_text, flags, renderX, renderY, m_zOrder, 
+            C2D_DrawText(&m_text, flags, renderX, renderY, 0.5f, 
                          m_textScaleX * parentScaleX, m_textScaleY * parentScaleY, finalColor);
         }
     }
@@ -524,24 +526,31 @@ namespace engine {
     }
 
     void Director::setTopScene(std::shared_ptr<Scene> scene) {
-        m_topScene = scene;
+        // Buffer the transition — may be called from inside update().
+        m_pendingTopScene = scene;
+        m_hasPendingTop = true;
     }
 
     void Director::setBottomScene(std::shared_ptr<Scene> scene) {
-        m_bottomScene = scene;
+        m_pendingBottomScene = scene;
+        m_hasPendingBottom = true;
     }
 
     void Director::runWithScenes(std::shared_ptr<Scene> topScene, std::shared_ptr<Scene> bottomScene) {
+        // runWithScenes is called at startup before the loop, so apply directly.
         m_topScene = topScene;
         m_bottomScene = bottomScene;
     }
 
-    void Director::replaceTopScene(std::shared_ptr<Scene> newScene) {
-        m_topScene = newScene;
-    }
-
-    void Director::replaceBottomScene(std::shared_ptr<Scene> newScene) {
-        m_bottomScene = newScene;
+    void Director::flushPendingScenes() {
+        if (m_hasPendingTop) {
+            m_topScene = std::move(m_pendingTopScene);
+            m_hasPendingTop = false;
+        }
+        if (m_hasPendingBottom) {
+            m_bottomScene = std::move(m_pendingBottomScene);
+            m_hasPendingBottom = false;
+        }
     }
 
     C2D_SpriteSheet Director::loadSpriteSheet(const std::string& key, const std::string& path) {
@@ -584,6 +593,8 @@ namespace engine {
 
             if (engine::Input::getInstance().isKeyDown(KEY_START)) break; 
 
+            engine::AudioEngine::getInstance().update();
+
             if (m_topScene) {
                 m_topScene->update(dt);
             }
@@ -591,16 +602,23 @@ namespace engine {
                 m_bottomScene->update(dt);
             }
 
+            // Apply any scene transitions that were requested during update()
+            // (e.g. from a CallFunc callback). Doing this here ensures no scene
+            // is destroyed while its own update call-stack is still active.
+            flushPendingScenes();
+
             C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
 
             C2D_TargetClear(topTarget, m_topClearColor);
             C2D_SceneBegin(topTarget);
+            C3D_DepthTest(false, GPU_ALWAYS, GPU_WRITE_COLOR);
             if (m_topScene) {
                 m_topScene->visit(0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f);
             }
 
             C2D_TargetClear(bottomTarget, m_bottomClearColor);
             C2D_SceneBegin(bottomTarget);
+            C3D_DepthTest(false, GPU_ALWAYS, GPU_WRITE_COLOR);
             if (m_bottomScene) {
                 m_bottomScene->visit(0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f);
             }
