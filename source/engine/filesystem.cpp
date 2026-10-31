@@ -3,9 +3,10 @@
 namespace engine {
 
 std::string Filesystem::readFileRomfs(const char* path) {
-    FILE* f = std::fopen(path, "rb");
+    std::string resolved = resolvePath(path);
+    FILE* f = std::fopen(resolved.c_str(), "rb");
     if (!f) {
-        std::printf("Filesystem: Failed to open file: %s\n", path);
+        std::printf("Filesystem: Failed to open file: %s (resolved: %s)\n", path, resolved.c_str());
         return "";
     }
 
@@ -32,9 +33,10 @@ std::string Filesystem::readFileRomfs(const char* path) {
 }
 
 std::vector<uint8_t> Filesystem::readFileBinaryRomfs(const char* path) {
-    FILE* f = std::fopen(path, "rb");
+    std::string resolved = resolvePath(path);
+    FILE* f = std::fopen(resolved.c_str(), "rb");
     if (!f) {
-        std::printf("Filesystem: Failed to open binary file: %s\n", path);
+        std::printf("Filesystem: Failed to open binary file: %s (resolved: %s)\n", path, resolved.c_str());
         return {};
     }
 

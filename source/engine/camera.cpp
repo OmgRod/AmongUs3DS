@@ -28,7 +28,10 @@ namespace engine {
     }
 
     bool CameraManager::startCapture(CameraSelect camera, CameraSize size, CameraFormat format) {
-        if (!m_initialized || m_capturing) return false;
+        if (!m_initialized) {
+            if (!init()) return false;
+        }
+        if (m_capturing) return false;
 
         Result res = CAMU_StartCapture(1); // PORT_CAM1
         if (R_FAILED(res)) return false;

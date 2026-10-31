@@ -32,7 +32,10 @@ namespace engine {
     }
 
     bool NfcManager::readTagData(std::vector<uint8_t>& outData) {
-        if (!m_initialized || !m_tagFound) return false;
+        if (!m_initialized) {
+            if (!init()) return false;
+        }
+        if (!m_tagFound) return false;
         return false;
     }
 

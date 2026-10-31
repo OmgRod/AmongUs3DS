@@ -1,13 +1,10 @@
 #include <game/scenes/MenuScene.hpp>
 #include <game/objects/PlayerSprite.hpp>
+#include <game/objects/colors.hpp>
 #include <engine/actions.hpp>
 #include <engine/input.hpp>
-#include <algorithm>
-#include <random>
 
 namespace game {
-
-    static float s_spawnTimer = 0.0f;
 
     std::shared_ptr<MenuSceneTop> MenuSceneTop::create() {
         auto scene = std::make_shared<MenuSceneTop>();
@@ -17,52 +14,43 @@ namespace game {
 
     void MenuSceneTop::init() {
         auto size = engine::Director::getInstance().getTopScreenSize();
-        s_spawnTimer = 0.0f;
 
         auto& ae = engine::AudioEngine::getInstance();
-        auto music = ae.playSFX("romfs:/audio/AmongUsTheme.wav", true);
+        auto music = ae.playSFX("sdmc:/3ds/AmongUs3DS/assets/audio/AmongUsTheme.wav", true);
         music.setTag("menu-music");
 
         m_starfield = Starfield::create(size.width, size.height, StarDirection::Right, 25.f);
-        m_starfield->setZOrder(-100);
         this->addChild(m_starfield);
 
+        m_floatingCrew.reserve(8);
         for (int i = 0; i < 6; ++i) {
             spawnCrewMember(false);
         }
 
-        auto logo = engine::Sprite::create("romfs:/sprites/bannerLogo_AmongUs.png");
+        auto logo = engine::Sprite::create("sdmc:/3ds/AmongUs3DS/assets/sprites/bannerLogo_AmongUs.png");
         logo->setPosition(size.width / 2, size.height / 2);
         logo->setScale(0.55f);
         logo->setAnchorPoint(0.5f, 0.5f);
-        logo->setZOrder(1000);
         this->addChild(logo);
 
         auto copyrightNotice = engine::Label::create("romfs:/fonts/arial.bcfnt", "This is an unofficial Nintendo 3DS port developed by OmgRod. Among Us is\nproperty of Innersloth LLC. OmgRod is not affiliated with or endorsed by\nInnersloth.");
         copyrightNotice->setTextScale(0.5f);
         copyrightNotice->setPosition(0.f, size.height - (copyrightNotice->getHeight() / 2) - 5.f);
-        copyrightNotice->setZOrder(1000);
         this->addChild(copyrightNotice);
     }
 
     void MenuSceneTop::spawnCrewMember(bool outside) {
         auto size = engine::Director::getInstance().getTopScreenSize();
         int crewIndex = engine::Math::randomInt(1, 6);
-        std::string path = "romfs:/sprites/mainscreenCrew" + std::to_string(crewIndex) + ".png";
-        
-        std::vector<int> usedColors;
-        for (const auto& member : m_floatingCrew) {}
-
         int colorId = engine::Math::randomInt(0, 11);
+        std::string path = "sdmc:/3ds/AmongUs3DS/assets/sprites/mainscreenCrew" + std::to_string(crewIndex) + ".png";
+        
         auto sprite = game::PlayerSprite::create(path, colorId);
         if (!sprite) return;
 
         float scale = engine::Math::randomFloat(0.15f, 0.30f);
         sprite->setScale(scale);
         sprite->setAnchorPoint(0.5f, 0.5f);
-
-        int zOrderValue = static_cast<int>((scale - 0.15f) / 0.15f * 20.0f) - 10;
-        sprite->setZOrder(zOrderValue);
 
         float x, y;
         if (outside) {
@@ -110,33 +98,43 @@ namespace game {
 
         auto size = engine::Director::getInstance().getTopScreenSize();
 
-        s_spawnTimer += dt;
-        if (s_spawnTimer >= 3.0f) {
-            s_spawnTimer = 0.0f;
-            spawnCrewMember(true);
-        }
+        for (auto& crew : m_floatingCrew) {
+            crew.x += crew.vx * dt;
+            crew.y += crew.vy * dt;
+            crew.rotation += crew.vRot * dt;
 
-        for (auto it = m_floatingCrew.begin(); it != m_floatingCrew.end(); ) {
-            it->x += it->vx * dt;
-            it->y += it->vy * dt;
-            it->rotation += it->vRot * dt;
+            crew.sprite->setPosition(crew.x, crew.y);
+            crew.sprite->setRotation(crew.rotation);
 
-            it->sprite->setPosition(it->x, it->y);
-            it->sprite->setRotation(it->rotation);
-
-            bool outOfBounds = (it->x < -80.0f || it->x > size.width + 80.0f ||
-                                it->y < -80.0f || it->y > size.height + 80.0f);
+            bool outOfBounds = (crew.x < -70.0f || crew.x > size.width + 70.0f ||
+                                crew.y < -70.0f || crew.y > size.height + 70.0f);
 
             if (outOfBounds) {
-                it->sprite->removeFromParent();
-                it = m_floatingCrew.erase(it);
-            } else {
-                ++it;
+                int edge = engine::Math::randomInt(0, 3);
+                switch (edge) {
+                    case 0: // Top
+                        crew.x = engine::Math::randomFloat(0, size.width);
+                        crew.y = -50.0f;
+                        break;
+                    case 1: // Bottom
+                        crew.x = engine::Math::randomFloat(0, size.width);
+                        crew.y = size.height + 50.0f;
+                        break;
+                    case 2: // Left
+                        crew.x = -50.0f;
+                        crew.y = engine::Math::randomFloat(0, size.height);
+                        break;
+                    default: // Right
+                        crew.x = size.width + 50.0f;
+                        crew.y = engine::Math::randomFloat(0, size.height);
+                        break;
+                }
+                crew.vx = engine::Math::randomFloat(-6.0f, 6.0f);
+                crew.vy = engine::Math::randomFloat(-6.0f, 6.0f);
+                if (std::abs(crew.vx) < 1.0f) crew.vx = (crew.vx < 0 ? -2.0f : 2.0f);
+                if (std::abs(crew.vy) < 1.0f) crew.vy = (crew.vy < 0 ? -2.0f : 2.0f);
+                crew.vRot = engine::Math::randomFloat(-12.0f, 12.0f);
             }
-        }
-
-        if (m_floatingCrew.size() < 6) {
-            spawnCrewMember(true);
         }
     }
 
@@ -147,7 +145,10 @@ namespace game {
     }
 
     void MenuSceneBottom::init() {
-        
+        auto size = engine::Director::getInstance().getBottomScreenSize();
+
+        m_starfield = Starfield::create(size.width, size.height, StarDirection::Right, 25.f);
+        this->addChild(m_starfield);
     }
 
     void MenuSceneBottom::update(float dt) {

@@ -19,7 +19,7 @@ namespace game {
         m_starfield->setZOrder(0.0f);
         this->addChild(m_starfield);
 
-        m_innerslothLogo = engine::Sprite::create("romfs:/sprites/logoImage.png");
+        m_innerslothLogo = engine::Sprite::create("sdmc:/3ds/AmongUs3DS/assets/sprites/logoImage.png");
         if (m_innerslothLogo) {
             m_innerslothLogo->setPosition(size.width / 2.0f, -100.0f);
             m_innerslothLogo->setAnchorPoint(0.5f, 0.5f);
@@ -40,7 +40,7 @@ namespace game {
                 engine::Spawn::create(
                     engine::Sequence::create(
                         engine::DelayTime::create(0.5f),
-                        engine::PlaySound::create("romfs:/audio/panel_admin_cardmove1.wav")
+                        engine::PlaySound::create("sdmc:/3ds/AmongUs3DS/assets/audio/panel_admin_cardmove1.wav")
                     ),
                     engine::MoveTo::create(1.0f, size.width / 2.0f, size.height / 2.0f, engine::Ease::SineInOut),
                     engine::CallFunc::create([starsPtr]() {
@@ -52,7 +52,7 @@ namespace game {
                     })
                 ),
                 engine::DelayTime::create(0.2f),
-                engine::PlaySound::create("romfs:/audio/task_Complete.wav"),
+                engine::PlaySound::create("sdmc:/3ds/AmongUs3DS/assets/audio/task_Complete.wav"),
                 engine::ScaleTo::create(0.15f, 0.325f, engine::Ease::SineIn),
                 engine::ScaleTo::create(0.15f, 0.3f, engine::Ease::SineOut),
                 engine::CallFunc::create([fadePtr]() {

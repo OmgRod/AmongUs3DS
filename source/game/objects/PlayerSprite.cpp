@@ -69,11 +69,7 @@ namespace game {
 
         std::vector<uint8_t> fileData = engine::Filesystem::getInstance().readFileBinaryRomfs(path.c_str());
         if (fileData.empty()) {
-            std::string altPath = path;
-            if (altPath.rfind("romfs:/", 0) == 0) {
-                altPath = std::string("romfs:") + altPath.substr(6);
-            }
-            FILE* f = std::fopen(altPath.c_str(), "rb");
+            FILE* f = std::fopen(path.c_str(), "rb");
             if (f) {
                 std::fseek(f, 0, SEEK_END);
                 long length = std::ftell(f);
