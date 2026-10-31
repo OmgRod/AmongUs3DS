@@ -1,7 +1,7 @@
 # Among Us: 3DS Edition
 
 <p align="center">
-  <img src="romfs/sprites/bannerLogo_AmongUs.png" alt="AMOGUS">
+  <img src="https://github.com/AmongUs3DS/AmongUs3DS/blob/master/romfs/sprites/bannerLogo_AmongUs.png?raw=true" alt="AMOGUS">
 </p>
 
 ![Docs Build Status](https://img.shields.io/github/actions/workflow/status/AmongUs3DS/AmongUs3DS/docs.yml)
