@@ -2,8 +2,6 @@
 
 #include <includes.hpp>
 #include <game/objects/Starfield.hpp>
-#include <ftp_server.hpp>
-#include <miniz.h>
 
 namespace game {
 
@@ -22,14 +20,7 @@ namespace game {
 
     class AssetHelperSceneBottom : public engine::Scene {
     private:
-        std::shared_ptr<engine::Label> m_statusLabel;
-        std::shared_ptr<engine::Label> m_progressLabel;
-        std::shared_ptr<engine::DrawNode> m_progressBarBg;
-        std::shared_ptr<engine::DrawNode> m_progressBar;
         std::shared_ptr<Starfield> m_starfield;
-        std::unique_ptr<engine::FtpServer> m_ftpServer;
-        bool m_transferComplete = false;
-        bool m_extracted = false;
 
     public:
         static std::shared_ptr<AssetHelperSceneBottom> create();

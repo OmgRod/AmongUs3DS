@@ -1,4 +1,4 @@
-# Contributing Guidelines — Among Us: 3DS Edition
+# Contributing Guidelines
 
 Welcome to the **Among Us: 3DS Edition** repository! This project is a native C++ homebrew port targeting **Among Us v2020.9.22s** for the Nintendo 3DS family using `libctru` and `citro2d`.
 
@@ -48,7 +48,7 @@ All contributions are evaluated through our core development pillars:
 
 ### Engine Architecture & Coding Standards
 
-For detailed technical guidelines, architecture patterns, node systems, and coding conventions used across the custom game engine, please refer to the engine documentation at **[/docs/README.md](/docs/README.md)**.
+For detailed technical guidelines, architecture patterns, node systems, and coding conventions used across the custom game engine, please refer to the official API documentation at **[https://amongus3ds.github.io/AmongUs3DS](https://amongus3ds.github.io/AmongUs3DS)**.
 
 ## Contact Links
 

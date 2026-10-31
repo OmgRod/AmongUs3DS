@@ -1,3 +1,0 @@
-# 3DS Engine Documentation
-
-
