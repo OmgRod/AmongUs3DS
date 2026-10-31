@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['how_20we_20respond_0',['How We Respond',['../d1/d3d/md_ACCESSIBILITY.html#autotoc_md5',1,'']]]
+  ['kanji_0',['KANJI',['../dd/db8/classqrcodegen_1_1QrSegment_1_1Mode.html#a36b33d4af43c2c3b4026e07dbe95f62a',1,'qrcodegen::QrSegment::Mode']]]
 ];

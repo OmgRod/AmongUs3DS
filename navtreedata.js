@@ -25,56 +25,52 @@
 var NAVTREE =
 [
   [ "Among Us: 3DS Edition", "index.html", [
-    [ "Accessibility", "d1/d3d/md_ACCESSIBILITY.html", [
-      [ "Priorities", "d1/d3d/md_ACCESSIBILITY.html#autotoc_md1", null ],
-      [ "Contributor Expectations", "d1/d3d/md_ACCESSIBILITY.html#autotoc_md2", null ],
-      [ "Reporting Accessibility Issues", "d1/d3d/md_ACCESSIBILITY.html#autotoc_md3", [
-        [ "Severity", "d1/d3d/md_ACCESSIBILITY.html#autotoc_md4", null ],
-        [ "How We Respond", "d1/d3d/md_ACCESSIBILITY.html#autotoc_md5", null ]
-      ] ],
-      [ "Supported Environments", "d1/d3d/md_ACCESSIBILITY.html#autotoc_md6", null ],
-      [ "Known Limitations", "d1/d3d/md_ACCESSIBILITY.html#autotoc_md7", null ],
-      [ "Feedback", "d1/d3d/md_ACCESSIBILITY.html#autotoc_md8", null ]
+    [ "Prerequisites", "index.html#autotoc_md1", null ],
+    [ "Building the Game", "index.html#autotoc_md2", null ],
+    [ "Namespaces", "namespaces.html", [
+      [ "Namespace List", "namespaces.html", "namespaces_dup" ],
+      [ "Namespace Members", "namespacemembers.html", [
+        [ "All", "namespacemembers.html", null ],
+        [ "Functions", "namespacemembers_func.html", null ],
+        [ "Variables", "namespacemembers_vars.html", null ],
+        [ "Typedefs", "namespacemembers_type.html", null ],
+        [ "Enumerations", "namespacemembers_enum.html", null ],
+        [ "Enumerator", "namespacemembers_eval.html", null ]
+      ] ]
     ] ],
-    [ "Contributor Covenant Code of Conduct", "d4/dbe/md_CODE__OF__CONDUCT.html", [
-      [ "Our Pledge", "d4/dbe/md_CODE__OF__CONDUCT.html#autotoc_md10", null ],
-      [ "Our Standards", "d4/dbe/md_CODE__OF__CONDUCT.html#autotoc_md11", null ],
-      [ "Enforcement Responsibilities", "d4/dbe/md_CODE__OF__CONDUCT.html#autotoc_md12", null ],
-      [ "Scope", "d4/dbe/md_CODE__OF__CONDUCT.html#autotoc_md13", null ],
-      [ "Enforcement", "d4/dbe/md_CODE__OF__CONDUCT.html#autotoc_md14", null ],
-      [ "Enforcement Guidelines", "d4/dbe/md_CODE__OF__CONDUCT.html#autotoc_md15", [
-        [ "1. Correction", "d4/dbe/md_CODE__OF__CONDUCT.html#autotoc_md16", null ],
-        [ "2. Warning", "d4/dbe/md_CODE__OF__CONDUCT.html#autotoc_md17", null ],
-        [ "3. Temporary Ban", "d4/dbe/md_CODE__OF__CONDUCT.html#autotoc_md18", null ],
-        [ "4. Permanent Ban", "d4/dbe/md_CODE__OF__CONDUCT.html#autotoc_md19", null ]
-      ] ],
-      [ "Attribution", "d4/dbe/md_CODE__OF__CONDUCT.html#autotoc_md20", null ]
+    [ "Classes", "annotated.html", [
+      [ "Class List", "annotated.html", "annotated_dup" ],
+      [ "Class Index", "classes.html", null ],
+      [ "Class Hierarchy", "hierarchy.html", "hierarchy" ],
+      [ "Class Members", "functions.html", [
+        [ "All", "functions.html", "functions_dup" ],
+        [ "Functions", "functions_func.html", "functions_func" ],
+        [ "Variables", "functions_vars.html", null ],
+        [ "Enumerations", "functions_enum.html", null ],
+        [ "Enumerator", "functions_eval.html", null ]
+      ] ]
     ] ],
-    [ "Contributing Guidelines", "d2/dc1/md_CONTRIBUTING.html", [
-      [ "Table of Contents", "d2/dc1/md_CONTRIBUTING.html#autotoc_md22", null ],
-      [ "Setup Instructions", "d2/dc1/md_CONTRIBUTING.html#autotoc_md23", null ],
-      [ "Contributing Guidelines", "d2/dc1/md_CONTRIBUTING.html#autotoc_md24", [
-        [ "1. Faithful Accuracy (v2020.9.22s)", "d2/dc1/md_CONTRIBUTING.html#autotoc_md25", null ],
-        [ "2. Thoughtful Quality of Life (QoL)", "d2/dc1/md_CONTRIBUTING.html#autotoc_md26", null ],
-        [ "3. Fixing and Polishing", "d2/dc1/md_CONTRIBUTING.html#autotoc_md27", null ],
-        [ "Engine Architecture & Coding Standards", "d2/dc1/md_CONTRIBUTING.html#autotoc_md28", null ]
-      ] ],
-      [ "Contact Links", "d2/dc1/md_CONTRIBUTING.html#autotoc_md29", null ]
-    ] ],
-    [ "Among Us: 3DS Edition", "d0/d30/md_README.html", [
-      [ "Prerequisites", "d0/d30/md_README.html#autotoc_md31", null ],
-      [ "Building the Game", "d0/d30/md_README.html#autotoc_md32", null ]
-    ] ],
-    [ "Security Policy", "db/db3/md_SECURITY.html", [
-      [ "Supported Versions", "db/db3/md_SECURITY.html#autotoc_md34", null ],
-      [ "Reporting a Vulnerability", "db/db3/md_SECURITY.html#autotoc_md35", null ]
+    [ "Files", "files.html", [
+      [ "File List", "files.html", "files_dup" ],
+      [ "File Members", "globals.html", [
+        [ "All", "globals.html", null ],
+        [ "Functions", "globals_func.html", null ],
+        [ "Typedefs", "globals_type.html", null ],
+        [ "Enumerator", "globals_eval.html", null ],
+        [ "Macros", "globals_defs.html", null ]
+      ] ]
     ] ]
   ] ]
 ];
 
 var NAVTREEINDEX =
 [
-"d0/d30/md_README.html"
+"annotated.html",
+"d2/da8/classengine_1_1Node.html#aacd1c06f63613157c27b023d69628fb2",
+"d6/d40/stb__image_8h.html#acf48dffaa1b2bb00f5a8d9af697c6aca",
+"d8/d16/structengine_1_1Sound.html#ae7687009aab5b8bb66239d140aff35a7",
+"db/d78/classengine_1_1MiiManager.html#ae8a7d36fa8455cb090fac623552b66e5",
+"de/df1/classengine_1_1Action.html#a6ced05452892ab8037461a3ddc448a33"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

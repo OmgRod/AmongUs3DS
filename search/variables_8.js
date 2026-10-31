@@ -1,0 +1,4 @@
+var searchData=
+[
+  ['kanji_0',['KANJI',['../dd/db8/classqrcodegen_1_1QrSegment_1_1Mode.html#a36b33d4af43c2c3b4026e07dbe95f62a',1,'qrcodegen::QrSegment::Mode']]]
+];
