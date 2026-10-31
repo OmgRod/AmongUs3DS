@@ -3,6 +3,10 @@
 // dkp headers
 #include <3ds.h>
 #include <citro2d.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 // std headers
 #include <algorithm>
@@ -20,14 +24,11 @@
 #include <string>
 #include <vector>
 
-// other stuff?
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <unistd.h>
+// misc headers
 #include <stb_image.h>
 
 // engine headers
+#include <engine/math.hpp>
 #include <engine/actions.hpp>
 #include <engine/audio.hpp>
 #include <engine/camera.hpp>
@@ -35,7 +36,6 @@
 #include <engine/graphics.hpp>
 #include <engine/hazel.hpp>
 #include <engine/input.hpp>
-#include <engine/math.hpp>
 #include <engine/mii.hpp>
 #include <engine/network.hpp>
 #include <engine/nfc.hpp>

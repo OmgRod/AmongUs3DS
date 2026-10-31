@@ -138,13 +138,13 @@ void AudioEngine::update() {
     }
 }
 
-SoundId AudioEngine::playSFX(const std::string& path, bool loop) {
+SoundHandle AudioEngine::playSFX(const std::string& path, bool loop) {
     SoundParams params;
     params.loop = loop;
     return playSFX(path, params);
 }
 
-SoundId AudioEngine::playSFX(const std::string& path, float volume, float pan, float pitch, bool loop, const std::string& tag) {
+SoundHandle AudioEngine::playSFX(const std::string& path, float volume, float pan, float pitch, bool loop, const std::string& tag) {
     SoundParams params;
     params.volume = volume;
     params.pan = pan;
@@ -154,10 +154,10 @@ SoundId AudioEngine::playSFX(const std::string& path, float volume, float pan, f
     return playSFX(path, params);
 }
 
-SoundId AudioEngine::playSFX(const std::string& path, const SoundParams& params) {
+SoundHandle AudioEngine::playSFX(const std::string& path, const SoundParams& params) {
     if (!m_initialized) {
         std::printf("AudioEngine: Skipping SFX '%s' (audio subsystem not initialized).\n", path.c_str());
-        return INVALID_SOUND_ID;
+        return SoundHandle();
     }
 
     update();
@@ -165,13 +165,13 @@ SoundId AudioEngine::playSFX(const std::string& path, const SoundParams& params)
     SoundFormat format = getSoundFormatByExtension(path);
     if (format != SoundFormat::Wav) {
         std::printf("AudioEngine: Unsupported or unknown format for %s\n", path.c_str());
-        return INVALID_SOUND_ID;
+        return SoundHandle();
     }
 
     std::vector<uint8_t> fileData = Filesystem::getInstance().readFileBinaryRomfs(path.c_str());
     if (fileData.empty() || fileData.size() < sizeof(WAVHeader)) {
         std::printf("AudioEngine: Failed to read or invalid WAV file: %s\n", path.c_str());
-        return INVALID_SOUND_ID;
+        return SoundHandle();
     }
 
     WAVHeader header;
@@ -180,7 +180,7 @@ SoundId AudioEngine::playSFX(const std::string& path, const SoundParams& params)
     if (std::strncmp(header.chunkId, "RIFF", 4) != 0 || 
         std::strncmp(header.format, "WAVE", 4) != 0) {
         std::printf("AudioEngine: Invalid WAV file structure: %s\n", path.c_str());
-        return INVALID_SOUND_ID;
+        return SoundHandle();
     }
 
     uint32_t sampleRate = 22050;
@@ -213,13 +213,13 @@ SoundId AudioEngine::playSFX(const std::string& path, const SoundParams& params)
 
     if (dataOffset == 0 || dataOffset + dataSize > fileData.size()) {
         std::printf("AudioEngine: Could not find valid 'data' chunk in WAV: %s\n", path.c_str());
-        return INVALID_SOUND_ID;
+        return SoundHandle();
     }
 
     u8* audioBuffer = (u8*)linearAlloc(dataSize);
     if (!audioBuffer) {
         std::printf("AudioEngine: Failed to allocate linear memory for audio.\n");
-        return INVALID_SOUND_ID;
+        return SoundHandle();
     }
 
     std::memcpy(audioBuffer, fileData.data() + dataOffset, dataSize);
@@ -240,7 +240,7 @@ SoundId AudioEngine::playSFX(const std::string& path, const SoundParams& params)
     if (channel == -1) {
         std::printf("AudioEngine: No free NDSP channels available!\n");
         linearFree(audioBuffer);
-        return INVALID_SOUND_ID;
+        return SoundHandle();
     }
 
     ndspChnReset(channel);
@@ -286,7 +286,7 @@ SoundId AudioEngine::playSFX(const std::string& path, const SoundParams& params)
 
     std::printf("Playing SFX [ID: %lu, Ch: %d, Tag: '%s', Loop: %s]: %s\n",
                 (unsigned long)soundId, channel, params.tag.c_str(), params.loop ? "true" : "false", path.c_str());
-    return soundId;
+    return SoundHandle(soundId);
 }
 
 bool AudioEngine::stop(SoundId id) {
@@ -382,6 +382,13 @@ bool AudioEngine::setLooping(SoundId id, bool loop) {
 bool AudioEngine::isLooping(SoundId id) const {
     const auto* s = findSound(id);
     return s ? s->looping : false;
+}
+
+bool AudioEngine::setTag(SoundId id, const std::string& tag) {
+    auto* s = findSound(id);
+    if (!s) return false;
+    s->tag = tag;
+    return true;
 }
 
 int AudioEngine::getChannel(SoundId id) const {

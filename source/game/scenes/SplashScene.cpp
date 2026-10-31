@@ -15,7 +15,7 @@ namespace game {
     void SplashSceneTop::init() {
         auto size = engine::Director::getInstance().getTopScreenSize();
 
-        m_starfield = Starfield::create(size.width, size.height, 80, StarDirection::Down, 10.f, 50.f, true);
+        m_starfield = Starfield::create(size.width, size.height, StarDirection::Down, 0.0f);
         m_starfield->setZOrder(0.0f);
         this->addChild(m_starfield);
 
@@ -89,7 +89,7 @@ namespace game {
     void SplashSceneBottom::init() {
         auto size = engine::Director::getInstance().getBottomScreenSize();
 
-        m_starfield = Starfield::create(size.width, size.height, 60, StarDirection::Down, 10.f, 60.f, true);
+        m_starfield = Starfield::create(size.width, size.height, StarDirection::Down, 0.0f);
         this->addChild(m_starfield);
         m_starfield->runAction(engine::Sequence::create(
             engine::DelayTime::create(1.0f),
@@ -97,7 +97,7 @@ namespace game {
             StarSpeedTo::create(0.5f, 0.f, engine::Ease::SineOut)
         ));
 
-        m_rodCredit = engine::Label::create("romfs:/fonts/arial.ttf", "Ported to 3DS\nby OmgRod");
+        m_rodCredit = engine::Label::create("romfs:/fonts/arial.bcfnt", "Ported to 3DS\nby OmgRod");
         m_rodCredit->setAlignment(engine::Label::HAlign::Center);
         m_rodCredit->setAnchorPoint(0.5f, 0.5f);
         m_rodCredit->setPosition(size.width / 2.0f, size.height / 2.0f);

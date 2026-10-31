@@ -13,39 +13,23 @@ enum class StarDirection {
 };
 
 class Starfield : public engine::Node {
+private:
+    float         m_width     = 0.0f;
+    float         m_height    = 0.0f;
+    StarDirection m_direction = StarDirection::Down;
+    float         m_speed     = 60.0f;
 
     struct Star {
-        float x, y;
+        float x;
+        float y;
         float size;
-        float opacity;
-        float speedFactor;
-        u32   baseColor;
+        float speedMultiplier;
+        u8 brightness;
     };
 
-    float m_width    = 0.0f;
-    float m_height   = 0.0f;
-    StarDirection m_direction = StarDirection::Right;
-    float m_speed    = 0.0f;
-    float m_minSpeed = 10.0f;
-    float m_maxSpeed = 60.0f;
     std::vector<Star> m_stars;
 
-    uint32_t m_rng = 12345u;
-    float nextRand();
-    float nextRandRange(float lo, float hi);
-
-    void  initStar(Star& s, bool randomX);
-    void  drawStarAt(float x, float y, float sz, u32 color) const;
-
-    void init(
-        float width,
-        float height,
-        int   amount    = 60,
-        StarDirection direction = StarDirection::Right,
-        float minSpeed  = 10.f,
-        float maxSpeed  = 60.f,
-        bool  startStill = false
-    );
+    void init(float width, float height, StarDirection direction, float speed);
 
 public:
     Starfield() = default;
@@ -54,20 +38,15 @@ public:
     static std::shared_ptr<Starfield> create(
         float width,
         float height,
-        int   amount    = 60,
-        StarDirection direction = StarDirection::Right,
-        float minSpeed  = 10.f,
-        float maxSpeed  = 60.f,
-        bool  startStill = false
+        StarDirection direction = StarDirection::Down,
+        float speed = 60.f
     );
 
     void setSpeed(float speed) { m_speed = speed; }
     float getSpeed() const     { return m_speed; }
-    float getMinSpeed() const  { return m_minSpeed; }
-    float getMaxSpeed() const  { return m_maxSpeed; }
 
     virtual void update(float dt) override;
-    virtual void draw(float px, float py, float sx, float sy, float rot) override;
+    virtual void draw(float parentX, float parentY, float parentScaleX, float parentScaleY, float parentRotation) override;
 };
 
 class StarSpeedTo : public engine::FiniteTimeAction {

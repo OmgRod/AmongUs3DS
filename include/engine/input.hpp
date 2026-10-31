@@ -74,6 +74,8 @@ namespace engine {
 
         bool isTouched() const { return isKeyDown(KEY_TOUCH); }
         touchPosition getTouch() const { return m_touch; }
+
+        std::string getTextInput(const std::string& title = "", const std::string& initialText = "", size_t maxLength = 256);
     };
 
 }

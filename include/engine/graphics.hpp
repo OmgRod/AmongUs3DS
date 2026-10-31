@@ -77,7 +77,7 @@ namespace engine {
     };
 
     class Sprite : public Node {
-    private:
+    protected:
         C2D_Image m_image;
         C2D_ImageTint m_tint;
         bool m_hasTint = false;
@@ -193,17 +193,17 @@ namespace engine {
     class Button : public Node {
     private:
         std::shared_ptr<DrawNode> m_bgRect;
-        std::shared_ptr<Label> m_label;
+        std::shared_ptr<Node> m_contentNode;
         std::function<void()> m_onClick;
         u32 m_normalColor;
         u32 m_pressedColor;
         bool m_isPressed = false;
 
     public:
-        Button(float w, float h, const std::string& title, u32 normalColor, u32 pressedColor, std::function<void()> onClick);
+        Button(std::shared_ptr<Node> contentNode, u32 normalColor, u32 pressedColor, std::function<void()> onClick);
         virtual ~Button() = default;
 
-        static std::shared_ptr<Button> create(float w, float h, const std::string& title, u32 normalColor, u32 pressedColor, std::function<void()> onClick);
+        static std::shared_ptr<Button> create(std::shared_ptr<Node> contentNode, u32 normalColor, u32 pressedColor, std::function<void()> onClick);
 
         virtual void update(float dt) override;
     };
@@ -211,6 +211,13 @@ namespace engine {
     class Scene : public Node {
     public:
         static std::shared_ptr<Scene> create();
+    };
+
+    enum class TransitionType {
+        Fade,
+        SlideLeft,
+        SlideRight,
+        Zoom
     };
 
     class Director {
@@ -225,6 +232,16 @@ namespace engine {
         bool m_hasPendingBottom = false;
         std::shared_ptr<Scene> m_pendingTopScene;
         std::shared_ptr<Scene> m_pendingBottomScene;
+
+        bool m_inTransition = false;
+        TransitionType m_transitionType = TransitionType::Fade;
+        float m_transitionTimer = 0.0f;
+        float m_transitionDuration = 0.0f;
+        std::function<float(float)> m_transitionEasing = [](float t){ return t; };
+        std::shared_ptr<Scene> m_oldTopScene;
+        std::shared_ptr<Scene> m_oldBottomScene;
+        std::shared_ptr<Scene> m_nextTopScene;
+        std::shared_ptr<Scene> m_nextBottomScene;
 
         void flushPendingScenes();
 
@@ -247,6 +264,9 @@ namespace engine {
         void setTopScene(std::shared_ptr<Scene> scene);
         void setBottomScene(std::shared_ptr<Scene> scene);
         void runWithScenes(std::shared_ptr<Scene> topScene, std::shared_ptr<Scene> bottomScene);
+        void replaceSceneWithTransition(std::shared_ptr<Scene> newTop, std::shared_ptr<Scene> newBottom,
+                                        TransitionType type, float duration,
+                                        std::function<float(float)> easing = [](float t){ return t; });
 
         std::shared_ptr<Scene> getTopScene() const { return m_topScene; }
         std::shared_ptr<Scene> getBottomScene() const { return m_bottomScene; }

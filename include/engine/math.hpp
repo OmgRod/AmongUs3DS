@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace engine {
 
     class Vector {
@@ -39,5 +41,12 @@ namespace engine {
         bool operator==(const Size& other) const;
         bool operator!=(const Size& other) const;
     };
+
+    namespace Math {
+        void setSeed(unsigned int seed);
+        int randomInt(int min, int max);
+        float randomFloat(float min, float max);
+        float random01();
+    }
 
 }

@@ -1,4 +1,5 @@
 #include <engine/hazel.hpp>
+#include <engine/network.hpp>
 
 namespace engine {
 namespace hazel {

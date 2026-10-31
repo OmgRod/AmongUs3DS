@@ -14,10 +14,10 @@ namespace engine {
 
     struct SoundParams {
         bool loop = false;
-        float volume = 1.0f;    // 0.0f to 1.0f
-        float pan = 0.0f;       // -1.0f (left) to 1.0f (right), 0.0f (center)
-        float pitch = 1.0f;     // 1.0f = normal speed, 0.5f = half, 2.0f = double
-        std::string tag;        // Custom identifier tag (e.g. "bgm", "sfx", "ambience")
+        float volume = 1.0f;    // 0.0 – 1.0
+        float pan = 0.0f;       // -1.0 (left) .. 1.0 (right)
+        float pitch = 1.0f;     // 1.0 = normal
+        std::string tag;        // e.g. "bgm", "sfx", "ambience"
     };
 
     struct Sound {
@@ -35,6 +35,41 @@ namespace engine {
         bool looping = false;
         bool paused = false;
         ndspWaveBuf waveBuf;
+    };
+
+    class AudioEngine;
+
+    class SoundHandle {
+    public:
+        SoundHandle() = default;
+        explicit SoundHandle(SoundId id) : m_id(id) {}
+
+        SoundId id()    const { return m_id; }
+        bool    valid() const { return m_id != INVALID_SOUND_ID; }
+
+        SoundHandle& stop();
+        SoundHandle& pause();
+        SoundHandle& resume();
+
+        SoundHandle& setVolume(float v);
+        SoundHandle& setPan(float p);
+        SoundHandle& setPitch(float p);
+        SoundHandle& setLooping(bool l);
+        SoundHandle& setTag(const std::string& tag);
+
+        bool isPlaying() const;
+        bool isPaused()  const;
+        bool isLooping() const;
+
+        float getVolume()  const;
+        float getPan()     const;
+        float getPitch()   const;
+        int getChannel() const;
+        std::string getTag() const;
+        std::string getPath() const;
+
+    private:
+        SoundId m_id = INVALID_SOUND_ID;
     };
 
     class AudioEngine {
@@ -66,12 +101,10 @@ namespace engine {
         void update();
         bool isInitialized() const { return m_initialized; }
 
-        // Playback
-        SoundId playSFX(const std::string& path, bool loop = false);
-        SoundId playSFX(const std::string& path, const SoundParams& params);
-        SoundId playSFX(const std::string& path, float volume, float pan = 0.0f, float pitch = 1.0f, bool loop = false, const std::string& tag = "");
+        SoundHandle playSFX(const std::string& path, bool loop = false);
+        SoundHandle playSFX(const std::string& path, const SoundParams& params);
+        SoundHandle playSFX(const std::string& path, float volume, float pan = 0.0f, float pitch = 1.0f, bool loop = false, const std::string& tag = "");
 
-        // Sound Control by SoundId
         bool stop(SoundId id);
         bool pause(SoundId id);
         bool resume(SoundId id);
@@ -90,12 +123,13 @@ namespace engine {
         bool setLooping(SoundId id, bool loop);
         bool isLooping(SoundId id) const;
 
+        bool setTag(SoundId id, const std::string& tag);
+
         const Sound* getSound(SoundId id) const { return findSound(id); }
         int getChannel(SoundId id) const;
         std::string getTag(SoundId id) const;
         std::string getPath(SoundId id) const;
 
-        // Hardware Channel Control (0..23)
         bool stopChannel(int channel);
         bool pauseChannel(int channel);
         bool resumeChannel(int channel);
@@ -104,7 +138,6 @@ namespace engine {
         bool setChannelPitch(int channel, float pitchMultiplier);
         SoundId getSoundIdForChannel(int channel) const;
 
-        // Batch / Tag / Path Control
         void stopByTag(const std::string& tag);
         void pauseByTag(const std::string& tag);
         void resumeByTag(const std::string& tag);
@@ -118,14 +151,32 @@ namespace engine {
         void pauseAll();
         void resumeAll();
 
-        // Master Volume
         void setMasterVolume(float volume);
         float getMasterVolume() const { return m_masterVolume; }
 
-        // Queries
         size_t getPlayingSoundCount() const { return m_playingSounds.size(); }
         std::vector<SoundId> getSoundIdsByTag(const std::string& tag) const;
         std::vector<SoundId> getSoundIdsByPath(const std::string& path) const;
     };
+
+    inline SoundHandle& SoundHandle::stop() { AudioEngine::getInstance().stop(m_id);   return *this; }
+    inline SoundHandle& SoundHandle::pause() { AudioEngine::getInstance().pause(m_id);  return *this; }
+    inline SoundHandle& SoundHandle::resume() { AudioEngine::getInstance().resume(m_id); return *this; }
+
+    inline SoundHandle& SoundHandle::setVolume(float v) { AudioEngine::getInstance().setVolume(m_id, v);  return *this; }
+    inline SoundHandle& SoundHandle::setPan(float p) { AudioEngine::getInstance().setPan(m_id, p);     return *this; }
+    inline SoundHandle& SoundHandle::setPitch(float p) { AudioEngine::getInstance().setPitch(m_id, p);   return *this; }
+    inline SoundHandle& SoundHandle::setLooping(bool l) { AudioEngine::getInstance().setLooping(m_id, l); return *this; }
+    inline SoundHandle& SoundHandle::setTag(const std::string& tag) { AudioEngine::getInstance().setTag(m_id, tag);   return *this; }
+
+    inline bool SoundHandle::isPlaying() const { return AudioEngine::getInstance().isPlaying(m_id); }
+    inline bool SoundHandle::isPaused()  const { return AudioEngine::getInstance().isPaused(m_id);  }
+    inline bool SoundHandle::isLooping() const { return AudioEngine::getInstance().isLooping(m_id); }
+    inline float SoundHandle::getVolume() const { return AudioEngine::getInstance().getVolume(m_id); }
+    inline float SoundHandle::getPan()    const { return AudioEngine::getInstance().getPan(m_id);    }
+    inline float SoundHandle::getPitch()  const { return AudioEngine::getInstance().getPitch(m_id);  }
+    inline int SoundHandle::getChannel() const { return AudioEngine::getInstance().getChannel(m_id); }
+    inline std::string SoundHandle::getTag() const { return AudioEngine::getInstance().getTag(m_id);    }
+    inline std::string SoundHandle::getPath() const { return AudioEngine::getInstance().getPath(m_id);   }
 
 }

@@ -377,7 +377,7 @@ namespace engine {
         if (!m_fontLoaded) return;
         C2D_TextBufClear(m_textBuf);
 
-        C2D_TextParse(&m_text, m_textBuf, m_string.c_str());
+        C2D_TextFontParse(&m_text, m_font, m_textBuf, m_string.c_str());
         C2D_TextOptimize(&m_text);
 
         float w = 0.0f, h = 0.0f;
@@ -441,22 +441,25 @@ namespace engine {
         updateLayout();
     }
 
-    Button::Button(float w, float h, const std::string& title, u32 normalColor, u32 pressedColor, std::function<void()> onClick)
+    Button::Button(std::shared_ptr<Node> contentNode, u32 normalColor, u32 pressedColor, std::function<void()> onClick)
         : m_onClick(onClick), m_normalColor(normalColor), m_pressedColor(pressedColor) {
-        
+
+        float w = contentNode ? contentNode->getWidth() : 0.0f;
+        float h = contentNode ? contentNode->getHeight() : 0.0f;
+
         setContentSize(w, h);
 
         m_bgRect = DrawNode::createRect(w, h, normalColor);
         addChild(m_bgRect);
 
-        m_label = Label::create("romfs:/fonts/font.bcfnt", title, 0.5f, C2D_Color32(255, 255, 255, 255));
-        m_label->setAlignment(Label::HAlign::Center);
-        m_label->setPosition(w / 2.0f, h / 4.0f);
-        addChild(m_label);
+        if (contentNode) {
+            m_contentNode = contentNode;
+            addChild(m_contentNode);
+        }
     }
 
-    std::shared_ptr<Button> Button::create(float w, float h, const std::string& title, u32 normalColor, u32 pressedColor, std::function<void()> onClick) {
-        return std::make_shared<Button>(w, h, title, normalColor, pressedColor, onClick);
+    std::shared_ptr<Button> Button::create(std::shared_ptr<Node> contentNode, u32 normalColor, u32 pressedColor, std::function<void()> onClick) {
+        return std::make_shared<Button>(contentNode, normalColor, pressedColor, onClick);
     }
 
     void Button::update(float dt) {
@@ -577,24 +580,28 @@ namespace engine {
         C3D_RenderTarget* topTarget = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
         C3D_RenderTarget* bottomTarget = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
 
-        float dt = 1.0f / 60.0f;
+        u64 lastTick = osGetTime(); // milliseconds since boot
 
         while (aptMainLoop()) {
             gspWaitForVBlank();
-            
+
+            u64 nowTick = osGetTime();
+            float dt = static_cast<float>(nowTick - lastTick) / 1000.0f;
+            lastTick = nowTick;
+
+            // Clamp dt to avoid a spiral-of-death on slow frames
+            if (dt > 0.1f) dt = 0.1f;
+            if (dt <= 0.0f) dt = 1.0f / 60.0f;
+
             engine::Input::getInstance().poll();
 
-            if (engine::Input::getInstance().isKeyDown(KEY_START)) break; 
+            if (engine::Input::getInstance().isKeyDown(KEY_START)) break;
 
             engine::AudioEngine::getInstance().update();
 
-            if (m_topScene) {
-                m_topScene->update(dt);
-            }
-            if (m_bottomScene) {
-                m_bottomScene->update(dt);
-            }
-            
+            if (m_topScene)    m_topScene->update(dt);
+            if (m_bottomScene) m_bottomScene->update(dt);
+
             flushPendingScenes();
 
             C3D_FrameBegin(C3D_FRAME_SYNCDRAW);

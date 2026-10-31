@@ -8,12 +8,9 @@ int main(int argc, char **argv) {
     C2D_Init(C2D_DEFAULT_MAX_OBJECTS);
     romfsInit();
 
-    void* socBuffer = memalign(0x1000, 0x100000); 
-    Result socRes = socInit((u32*)socBuffer, 0x100000);
-    if (R_FAILED(socRes)) {
-        std::printf("Failed to initialize SOC service (0x%08lX). Networking disabled.\n", (unsigned long)socRes);
-    }
-    
+    engine::NetworkManager::getInstance().init();
+    engine::NfcManager::getInstance().init();
+    engine::CameraManager::getInstance().init();
     engine::AudioEngine::getInstance().init();
 
     C2D_Prepare();
@@ -30,9 +27,9 @@ int main(int argc, char **argv) {
     director.mainLoop();
 
     engine::AudioEngine::getInstance().shutdown();
-
-    socExit();
-    free(socBuffer);
+    engine::CameraManager::getInstance().shutdown();
+    engine::NfcManager::getInstance().shutdown();
+    engine::NetworkManager::getInstance().shutdown();
 
     C2D_Fini();
     C3D_Fini();

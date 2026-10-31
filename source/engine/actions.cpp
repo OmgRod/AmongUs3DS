@@ -251,7 +251,7 @@ namespace engine {
     void PlaySound::startWithTarget(Node* target) {
         FiniteTimeAction::startWithTarget(target);
         m_target = target;
-        m_soundId = AudioEngine::getInstance().playSFX(m_soundPath, m_volume, m_pan, m_pitch, m_loop, m_tag);
+        m_soundId = AudioEngine::getInstance().playSFX(m_soundPath, m_volume, m_pan, m_pitch, m_loop, m_tag).id();
         m_done = true;
     }
 

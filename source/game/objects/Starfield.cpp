@@ -1,107 +1,84 @@
 #include <game/objects/Starfield.hpp>
-#include <cstring>
+#include <engine/graphics.hpp>
+#include <engine/math.hpp>
 #include <cmath>
 
 namespace game {
 
-float Starfield::nextRand() {
-    m_rng = m_rng * 1664525u + 1013904223u;
-    return static_cast<float>(m_rng & 0x7FFFFFFFu) / static_cast<float>(0x7FFFFFFFu);
-}
-
-float Starfield::nextRandRange(float lo, float hi) {
-    return lo + nextRand() * (hi - lo);
-}
-
-void Starfield::initStar(Star& s, bool randomX) {
-    if (randomX) {
-        s.x = nextRandRange(0.0f, m_width);
-    } else {
-        switch (m_direction) {
-            case StarDirection::Right: s.x = -2.0f;          s.y = nextRandRange(0.0f, m_height); break;
-            case StarDirection::Left:  s.x = m_width  + 2.0f; s.y = nextRandRange(0.0f, m_height); break;
-            case StarDirection::Down:  s.y = -2.0f;          s.x = nextRandRange(0.0f, m_width);  break;
-            case StarDirection::Up:    s.y = m_height + 2.0f; s.x = nextRandRange(0.0f, m_width);  break;
-        }
-    }
-    if (randomX) {
-        s.y = nextRandRange(0.0f, m_height);
-    }
-
-    s.speedFactor = nextRandRange(0.15f, 1.0f);
-
-    float depthBias = s.speedFactor * s.speedFactor;
-    s.size = 1.0f + depthBias * 2.0f;
-
-    s.opacity = 0.25f + depthBias * 0.75f;
-
-    u8 bright = static_cast<u8>(s.opacity * 255.0f);
-    s.baseColor = C2D_Color32(bright, bright, bright, 255);
-}
-
-void Starfield::drawStarAt(float x, float y, float sz, u32 color) const {
-    float half = sz * 0.5f;
-    C2D_DrawRectSolid(x - half, y - half, 0.5f, sz, sz, color);
-}
-
-void Starfield::init(float width, float height, int amount,
-                     StarDirection direction,
-                     float minSpeed, float maxSpeed,
-                     bool startStill) {
+void Starfield::init(float width, float height, StarDirection direction, float speed) {
     m_width     = width;
     m_height    = height;
     m_direction = direction;
-    m_minSpeed  = minSpeed;
-    m_maxSpeed  = maxSpeed;
-    m_speed     = startStill ? 0.0f : maxSpeed;
+    m_speed     = speed;
 
-    m_stars.resize(static_cast<size_t>(amount));
-    for (auto& s : m_stars) {
-        initStar(s, /*randomX=*/true);
+    int starCount = 80;
+    m_stars.reserve(starCount);
+
+    for (int i = 0; i < starCount; ++i) {
+        Star s;
+        s.x = engine::Math::randomFloat(0.0f, m_width);
+        s.y = engine::Math::randomFloat(0.0f, m_height);
+        s.size = engine::Math::randomFloat(1.0f, 2.5f);
+        s.speedMultiplier = engine::Math::randomFloat(0.4f, 1.8f);
+        s.brightness = static_cast<u8>(engine::Math::randomInt(100, 255));
+        m_stars.push_back(s);
     }
 }
 
-std::shared_ptr<Starfield> Starfield::create(float width, float height, int amount,
-                                              StarDirection direction,
-                                              float minSpeed, float maxSpeed,
-                                              bool startStill) {
+std::shared_ptr<Starfield> Starfield::create(float width, float height, StarDirection direction, float speed) {
     auto node = std::make_shared<Starfield>();
-    node->init(width, height, amount, direction, minSpeed, maxSpeed, startStill);
+    node->init(width, height, direction, speed);
     return node;
 }
 
 void Starfield::update(float dt) {
     engine::Node::update(dt);
 
-    for (auto& s : m_stars) {
-        float spd = m_speed * s.speedFactor;
+    if (m_speed == 0.0f || m_stars.empty()) return;
+
+    for (auto& star : m_stars) {
+        float moveDelta = m_speed * star.speedMultiplier * dt;
 
         switch (m_direction) {
             case StarDirection::Right:
-                s.x += spd * dt;
-                if (s.x > m_width  + s.size) initStar(s, /*randomX=*/false);
+                star.x += moveDelta;
+                if (star.x > m_width) star.x = 0.0f;
                 break;
             case StarDirection::Left:
-                s.x -= spd * dt;
-                if (s.x < -s.size)            initStar(s, /*randomX=*/false);
+                star.x -= moveDelta;
+                if (star.x < 0.0f) star.x = m_width;
                 break;
             case StarDirection::Down:
-                s.y += spd * dt;
-                if (s.y > m_height + s.size)  initStar(s, /*randomX=*/false);
+                star.y += moveDelta;
+                if (star.y > m_height) star.y = 0.0f;
                 break;
             case StarDirection::Up:
-                s.y -= spd * dt;
-                if (s.y < -s.size)            initStar(s, /*randomX=*/false);
+                star.y -= moveDelta;
+                if (star.y < 0.0f) star.y = m_height;
                 break;
         }
     }
 }
 
-void Starfield::draw(float parentX, float parentY, float, float, float) {
-    for (const auto& s : m_stars) {
-        drawStarAt(parentX + s.x, parentY + s.y, s.size, s.baseColor);
+void Starfield::draw(float parentX, float parentY, float parentScaleX, float parentScaleY, float parentRotation) {
+    engine::Node::draw(parentX, parentY, parentScaleX, parentScaleY, parentRotation);
+
+    float absX = parentX + m_x;
+    float absY = parentY + m_y;
+
+    for (const auto& star : m_stars) {
+        float sx = absX + star.x * parentScaleX;
+        float sy = absY + star.y * parentScaleY;
+        float sradius = star.size * parentScaleX;
+
+        u32 color = C2D_Color32(star.brightness, star.brightness, star.brightness, star.brightness);
+        C2D_DrawCircleSolid(sx, sy, 0.5f, sradius, color);
     }
 }
+
+// ---------------------------------------------------------------------------
+// StarSpeedTo action implementation
+// ---------------------------------------------------------------------------
 
 StarSpeedTo::StarSpeedTo(float duration, float targetSpeed, engine::Ease::EaseFunc ease)
     : FiniteTimeAction(duration), m_endSpeed(targetSpeed), m_ease(ease) {
@@ -139,4 +116,4 @@ void StarSpeedTo::step(float dt) {
     if (progress >= 1.0f) m_done = true;
 }
 
-}
+} // namespace game
