@@ -4,7 +4,7 @@
   <img src="romfs/sprites/bannerLogo_AmongUs.png" alt="AMOGUS">
 </p>
 
-![Build Status](https://img.shields.io/github/actions/workflow/status/AmongUs3DS/AmongUs3DS/build.yml)
+![Docs Build Status](https://img.shields.io/github/actions/workflow/status/AmongUs3DS/AmongUs3DS/docs.yml)
 
 This is an unofficial port of **Among Us** `v2020.9.22s` *(with a few adjustments)* for the **Nintendo 3DS**, built natively in C++ using **devkitPro**.
 
